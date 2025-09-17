@@ -22,4 +22,4 @@
 ![](documentacao/UML/UML_S03.drawio.png)
 
 ### Primeira Versão do Wireframe
-![](X)
+![](documentacao/Wireframe/Wireframe.drawio.jpg)
