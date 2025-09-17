@@ -10,9 +10,9 @@
 |Felipe Campos de Souza|453|
 |Gabriel Cerantola Rigatto Morás|359|
 |Henrique Junqueira Bicalho|X|
-|Natália|X|
+|Nathália Aparecida Almeida Costa|508|
 |Sofia Nogueira Groke|X|
-|Vitor|X|
+|Victor Arruda Gorgal|524|
 
 ## Documentação
 ### Primeira Versão do UML de Classe
