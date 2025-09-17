@@ -16,10 +16,10 @@ Responsável por disponibilizar ou aceitar propostas de trocas de cartas. Essa a
 
 ## Documentação
 ### Primeira Versão do UML de Classe
-![](X)
+![](documentacao/UML/UMLClasse.drawio.png)
 
 ### Primeira Versão do UML de Caso Único
-![](X)
+![](documentacao/UML/UML_S03.drawio.png)
 
 ### Primeira Versão do Wireframe
 ![](X)
