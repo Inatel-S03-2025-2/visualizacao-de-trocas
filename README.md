@@ -9,9 +9,9 @@
 |Eduardo Melo Bertozzi|360|
 |Felipe Campos de Souza|453|
 |Gabriel Cerantola Rigatto Morás|359|
-|Henrique Junqueira Bicalho|X|
+|Henrique Junqueira Bicalho|362|
 |Nathália Aparecida Almeida Costa|508|
-|Sofia Nogueira Groke|X|
+|Sofia Nogueira Groke|468|
 |Victor Arruda Gorgal|524|
 
 ## Documentação
