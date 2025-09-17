@@ -1,6 +1,6 @@
 #  Visualização de Trocas
 
-## Descrição do Tema:
+## Descrição do Tema
   Responsável por disponibilizar ou aceitar propostas de trocas de cartas. Essa aplicação deve se comunicar com os serviços de jogadores e de trocas para que o jogador consiga disponibilizar alguma de suas cartas para troca, além de receber notificações quando algum outro jogador disponibilizar alguma de suas cartas. Quando um jogador solicitante receber uma proposta de troca ele também deve ser notificado e deve ter a opção de aceitar ou negar a proposta.
 
 ## Grupo
