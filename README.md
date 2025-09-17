@@ -16,7 +16,7 @@ Responsável por disponibilizar ou aceitar propostas de trocas de cartas. Essa a
 
 ## Documentação
 ### Primeira Versão do UML de Classe
-![](documentacao/UML/UMLClasse.drawio.png)
+![](documentacao/UML/UML_Classe.drawio.png)
 
 ### Primeira Versão do UML de Caso Único
 ![](documentacao/UML/UML_S03.drawio.png)
