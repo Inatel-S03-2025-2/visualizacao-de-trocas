@@ -1,7 +1,7 @@
 #  Visualização de Trocas
 
 ## Descrição do Tema
-  Responsável por disponibilizar ou aceitar propostas de trocas de cartas. Essa aplicação deve se comunicar com os serviços de jogadores e de trocas para que o jogador consiga disponibilizar alguma de suas cartas para troca, além de receber notificações quando algum outro jogador disponibilizar alguma de suas cartas. Quando um jogador solicitante receber uma proposta de troca ele também deve ser notificado e deve ter a opção de aceitar ou negar a proposta.
+  Responsável pelo desenvolvimento de uma interface de usuário responsiva, projetada para garantir uma integração eficiente com os sistemas de troca. A aplicação frontend é responsável por gerenciar a comunicação com o backend, permitindo a realização de cadastros, autenticação de usuários (login) e acesso às funcionalidades do serviço de forma intuitiva.
 
 ## Grupo
 |**Nome**|**Matrícula**|
