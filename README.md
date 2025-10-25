@@ -19,7 +19,7 @@
 ![](documentacao/UML/UMLclasseCorrigido.drawio.png)
 
 ### Segunda Versão do UML de Caso Único
-![](documentacao/UML/Diagrama_casos_atualizado.png)
+![](documentacao/UML/Diagrama_casos_atualizado.drawio.png)
 
 ### Primeira Versão do Wireframe
 ![](documentacao/Wireframe/Wireframe.drawio.jpg)
