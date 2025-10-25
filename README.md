@@ -15,11 +15,11 @@
 |Victor Arruda Gorgal|524|
 
 ## Documentação
-### Primeira Versão do UML de Classe
-![](documentacao/UML/UML_Classe.drawio.png)
+### Segunda Versão do UML de Classe
+![](documentacao/UML/UMLclasseCorrigido.drawio.png)
 
-### Primeira Versão do UML de Caso Único
-![](documentacao/UML/UML_S03.drawio.png)
+### Segunda Versão do UML de Caso Único
+![](documentacao/UML/Diagrama.png)
 
 ### Primeira Versão do Wireframe
 ![](documentacao/Wireframe/Wireframe.drawio.jpg)
