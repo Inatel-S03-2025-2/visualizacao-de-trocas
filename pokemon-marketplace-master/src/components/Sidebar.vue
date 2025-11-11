@@ -1,27 +1,38 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import PokemonCard from './PokemonCard.vue'
 
+// Usuário atual
 const currentUser = ref({
   username: 'USERNAME',
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CurrentUser'
 })
 
-// Adicionamos as rotas
+// Itens do menu
 const menuItems = ref([
   { icon: 'home', label: 'Home', active: true, to: '/' },
   { icon: 'plus', label: 'Add Trade', active: false, to: '/add-trade' },
   { icon: 'cards', label: 'My Cards', active: false, to: '/my-cards' },
   { icon: 'heart', label: 'Favorites', active: false, to: '/wishlist' }
 ])
+
+// ID aleatório de Pokémon (1–151)
+const randomId = ref<number | null>(null)
+
+onMounted(() => {
+  randomId.value = Math.floor(Math.random() * 151) + 1
+})
 </script>
 
 <template>
   <aside class="sidebar">
+    <!-- Perfil do usuário -->
     <div class="user-profile">
       <img :src="currentUser.avatar" :alt="currentUser.username" class="avatar" />
       <span class="username">{{ currentUser.username }}</span>
     </div>
 
+    <!-- Menu lateral -->
     <nav class="menu">
       <router-link
           v-for="item in menuItems"
@@ -56,6 +67,11 @@ const menuItems = ref([
         </span>
       </router-link>
     </nav>
+
+    <!-- Carta Pokémon aleatória -->
+    <div v-if="randomId" class="random-pokemon">
+      <PokemonCard :id="randomId" />
+    </div>
   </aside>
 </template>
 
@@ -68,8 +84,7 @@ const menuItems = ref([
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 48px; /* espaço entre o perfil e o menu */
-  justify-content: flex-start; /* tudo no topo */
+  gap: 32px;
 }
 
 .user-profile {
@@ -96,14 +111,9 @@ const menuItems = ref([
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 32px; /* espaçamento entre botões */
+  gap: 24px;
   align-items: center;
   justify-content: center;
-}
-
-/* Ocultar o terceiro item (My Cards) */
-.menu-item:nth-child(3) {
-  display: none;
 }
 
 .menu-item {
@@ -138,34 +148,14 @@ const menuItems = ref([
   justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-    width: 100%;
-    flex-direction: row;
-    padding: 16px;
-    gap: 16px;
-    justify-content: space-between;
-  }
-
-  .user-profile {
-    flex-direction: row;
-    padding: 0;
-  }
-
-  .avatar {
-    width: 40px;
-    height: 40px;
-  }
-
-  .menu {
-    flex-direction: row;
-    gap: 24px;
-    justify-content: center;
-  }
-
-  .menu-item {
-    width: 64px;
-    height: 64px;
-  }
+.random-pokemon {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
 }
 </style>
+
+
+
