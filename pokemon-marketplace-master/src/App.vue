@@ -1,26 +1,25 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue' // Adicionado 'computed'
-import { useRoute } from 'vue-router' // Adicionado useRoute para verificar a rota
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 import Sidebar from './components/Sidebar.vue'
 import SearchBar from './components/Searchbar.vue'
 import TradeCard from './components/TradeCard.vue'
 
-// Lógica para verificar a rota
+// Rota atual
 const route = useRoute()
-// Verifica se a rota atual NÃO é a rota da wishlist.
-// Assumindo que a rota da wishlist é '/wishlist'.
 const isMainTradesRoute = computed(() => route.path !== '/wishlist')
 
+// Trades de exemplo
 const trades = ref([
   {
     id: 1,
     username: 'Usuario1',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User1',
     cards: [
-      { id: 1, image: 'https://images.pokemontcg.io/base1/4_hires.png' },
-      { id: 2, image: 'https://images.pokemontcg.io/base1/1_hires.png' },
-      { id: 3, image: 'https://images.pokemontcg.io/base1/2_hires.png' }
+      { id: 1, name: 'Charizard', image: 'https://images.pokemontcg.io/base1/4_hires.png' },
+      { id: 2, name: 'Alakazam', image: 'https://images.pokemontcg.io/base1/1_hires.png' },
+      { id: 3, name: 'Blastoise', image: 'https://images.pokemontcg.io/base1/2_hires.png' }
     ]
   },
   {
@@ -28,9 +27,9 @@ const trades = ref([
     username: 'Usuario2',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User2',
     cards: [
-      { id: 1, image: 'https://images.pokemontcg.io/base1/7_hires.png' },
-      { id: 2, image: 'https://images.pokemontcg.io/base1/8_hires.png' },
-      { id: 3, image: 'https://images.pokemontcg.io/base1/9_hires.png' }
+      { id: 1, name: 'Hitmonlee', image: 'https://images.pokemontcg.io/base1/7_hires.png' },
+      { id: 2, name: 'Machamp', image: 'https://images.pokemontcg.io/base1/8_hires.png' },
+      { id: 3, name: 'Magneton', image: 'https://images.pokemontcg.io/base1/9_hires.png' }
     ]
   },
   {
@@ -38,18 +37,32 @@ const trades = ref([
     username: 'Usuario3',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User3',
     cards: [
-      { id: 1, image: 'https://images.pokemontcg.io/base1/15_hires.png' },
-      { id: 2, image: 'https://images.pokemontcg.io/base1/16_hires.png' },
-      { id: 3, image: 'https://images.pokemontcg.io/base1/17_hires.png' }
+      { id: 1, name: 'Venusaur', image: 'https://images.pokemontcg.io/base1/15_hires.png' },
+      { id: 2, name: 'Zapdos', image: 'https://images.pokemontcg.io/base1/16_hires.png' },
+      { id: 3, name: 'Beedrill', image: 'https://images.pokemontcg.io/base1/17_hires.png' }
     ]
   }
 ])
 
+// Search
 const searchQuery = ref('')
 
 const handleSearch = (query: string) => {
-  searchQuery.value = query
+  searchQuery.value = query.toLowerCase().trim()
 }
+
+// Computed filtrado
+const filteredTrades = computed(() => {
+  if (!searchQuery.value) return trades.value
+
+  return trades.value.filter(trade => {
+    // Verifica username
+    if (trade.username.toLowerCase().includes(searchQuery.value)) return true
+
+    // Verifica cada carta
+    return trade.cards.some(card => card.name.toLowerCase().includes(searchQuery.value))
+  })
+})
 </script>
 
 <template>
@@ -63,7 +76,7 @@ const handleSearch = (query: string) => {
 
         <div class="trades-list">
           <TradeCard
-              v-for="trade in trades"
+              v-for="trade in filteredTrades"
               :key="trade.id"
               :username="trade.username"
               :avatar="trade.avatar"
@@ -73,7 +86,6 @@ const handleSearch = (query: string) => {
       </div>
 
       <router-view v-else />
-
     </main>
 
     <aside class="right-sidebar">
@@ -89,7 +101,7 @@ const handleSearch = (query: string) => {
 </template>
 
 <style scoped>
-/* O seu bloco de estilos permanece exatamente igual */
+/* Mantive seu layout exatamente igual */
 .app-container {
   display: flex;
   height: 100vh;
