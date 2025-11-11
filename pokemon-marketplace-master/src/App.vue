@@ -14,7 +14,7 @@ const isMainTradesRoute = computed(() => route.path !== '/wishlist')
 const trades = ref([
   {
     id: 1,
-    username: 'Usuario1',
+    username: 'Ash',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User1',
     cards: [
       { id: 1, name: 'Charizard', image: 'https://images.pokemontcg.io/base1/4_hires.png' },
@@ -24,7 +24,7 @@ const trades = ref([
   },
   {
     id: 2,
-    username: 'Usuario2',
+    username: 'Giovanni',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User2',
     cards: [
       { id: 1, name: 'Hitmonlee', image: 'https://images.pokemontcg.io/base1/7_hires.png' },
@@ -34,7 +34,7 @@ const trades = ref([
   },
   {
     id: 3,
-    username: 'Usuario3',
+    username: 'Brock',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User3',
     cards: [
       { id: 1, name: 'Venusaur', image: 'https://images.pokemontcg.io/base1/15_hires.png' },
