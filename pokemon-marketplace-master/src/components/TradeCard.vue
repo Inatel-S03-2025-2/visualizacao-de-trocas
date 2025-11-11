@@ -14,29 +14,68 @@ interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits(['add-proposal'])
+
 const isExpanded = ref(false)
 const hoveredCardId = ref<number | null>(null)
+const selectedCardId = ref<number | null>(null)
+const showPopup = ref(false)
+const selectedUserCard = ref<number | null>(null)
 
-function toggleExpand(id: number) {
-  console.log('Clique detectado no card', id)
-  isExpanded.value = !isExpanded.value
-  console.log('isExpanded agora é', isExpanded.value)
+// Simulação de wishlist e cartas do usuário
+const wishlist = ref([
+  { id: 1, image: 'https://images.pokemontcg.io/base1/10_hires.png' },
+  { id: 2, image: 'https://images.pokemontcg.io/base1/12_hires.png' },
+  { id: 3, image: 'https://images.pokemontcg.io/base1/14_hires.png' }
+])
+
+const myCards = ref([
+  { id: 1, image: 'https://images.pokemontcg.io/base1/20_hires.png' },
+  { id: 2, image: 'https://images.pokemontcg.io/base1/21_hires.png' },
+  { id: 3, image: 'https://images.pokemontcg.io/base1/22_hires.png' },
+  { id: 4, image: 'https://images.pokemontcg.io/base1/23_hires.png' }
+])
+
+function toggleExpand(cardId: number) {
+  if (selectedCardId.value === cardId) {
+    isExpanded.value = false
+    selectedCardId.value = null
+  } else {
+    selectedCardId.value = cardId
+    isExpanded.value = true
+  }
 }
 
-function toggleOverlay(cardId: number) {
-  hoveredCardId.value = hoveredCardId.value === cardId ? null : cardId
+function openPopup() {
+  showPopup.value = true
 }
 
-function handleAddProposal(cardId: number) {
-  emit('add-proposal', { username: props.username, cardId })
+function closePopup() {
+  showPopup.value = false
+  selectedUserCard.value = null
+}
+
+function selectUserCard(cardId: number) {
+  selectedUserCard.value = cardId
+  showPopup.value = false
+}
+
+function handleAddProposal() {
+  if (selectedCardId.value && selectedUserCard.value) {
+    emit('add-proposal', {
+      username: props.username,
+      offeredCard: selectedUserCard.value,
+      targetCard: selectedCardId.value
+    })
+    selectedUserCard.value = null
+  }
 }
 </script>
 
 <template>
   <div class="trade-card" :class="{ expanded: isExpanded }">
-    <!-- Topo: avatar + username + cartas lado a lado -->
-    <div class="trade-top">
-      <div class="trade-header">
+    <!-- CABEÇALHO -->
+    <div class="trade-header">
+      <div class="user-info-block">
         <img :src="avatar" :alt="username" class="user-avatar" />
         <div class="user-info">
           <span class="username">{{ username }}</span>
@@ -44,7 +83,7 @@ function handleAddProposal(cardId: number) {
         </div>
       </div>
 
-      <!-- Cartas lado a lado -->
+      <!-- CARTAS LADO A LADO (agora à direita) -->
       <div class="cards-container">
         <div
             v-for="card in cards"
@@ -53,13 +92,9 @@ function handleAddProposal(cardId: number) {
             @mouseenter="hoveredCardId = card.id"
             @mouseleave="hoveredCardId = null"
             @click="toggleExpand(card.id)"
-            @keydown.enter.prevent="handleAddProposal(card.id)"
-            @keydown.space.prevent="handleAddProposal(card.id)"
-            tabindex="0"
+            :class="{ active: selectedCardId === card.id }"
         >
-          <img :src="card.image" :alt="'Card ' + card.id" class="pokemon-card" />
-
-          <!-- Overlay visual (não intercepta clique) -->
+          <img :src="card.image" class="pokemon-card" />
           <div v-if="hoveredCardId === card.id" class="overlay">
             <div class="overlay-content">
               <span class="overlay-text">Criar</span>
@@ -71,87 +106,123 @@ function handleAddProposal(cardId: number) {
       </div>
     </div>
 
-    <!-- Área expandida -->
-    <transition name="expand-fade">
-      <div class="expanded-area" v-if="isExpanded">
-        <p>Aqui vai o conteúdo extra do card selecionado.</p>
 
-        <!-- Botão dentro da área expandida -->
-        <div class="expanded-actions">
-          <button class="trade-button" @click="handleAddProposal(hoveredCardId || 0)">
-            <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+    <!-- ÁREA EXPANDIDA -->
+    <transition name="expand-fade">
+      <div v-if="isExpanded" class="expanded-area">
+        <div class="trade-expanded-content">
+          <!-- Carta selecionada -->
+          <div class="selected-card">
+            <img
+                v-if="selectedCardId"
+                :src="cards.find(c => c.id === selectedCardId)?.image"
+                class="pokemon-card selected"
+            />
+          </div>
+
+          <!-- Ícone de troca -->
+          <div class="trade-icon">
+            <img src="https://cdn0.iconfinder.com/data/icons/image-3/24/switch-flip-512.png" />
+          </div>
+
+          <!-- Botão de proposta -->
+          <div class="expanded-actions">
+            <button class="trade-button" @click="openPopup">
+              <template v-if="!selectedUserCard">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </template>
+              <img
+                  v-else
+                  :src="myCards.find(c => c.id === selectedUserCard)?.image"
+                  class="selected-mini"
+              />
+            </button>
+
+            <button
+                v-if="selectedUserCard"
+                class="confirm-button"
+                @click="handleAddProposal"
             >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
+              ✅ Enviar proposta
+            </button>
+          </div>
         </div>
       </div>
     </transition>
+
+    <!-- POPUP -->
+    <div v-if="showPopup" class="popup-overlay" @click.self="closePopup">
+      <div class="popup-container">
+        <button class="close-button" @click="closePopup">✕</button>
+        <h3>Proposta de Troca</h3>
+
+        <h4>Cartas desejadas por {{ username }}</h4>
+        <div class="popup-cards">
+          <div v-for="card in wishlist" :key="card.id" class="popup-card">
+            <img :src="card.image" />
+          </div>
+        </div>
+
+        <div class="popup-divider"></div>
+
+        <h4>Suas cartas disponíveis</h4>
+        <div class="popup-cards">
+          <div
+              v-for="card in myCards"
+              :key="card.id"
+              class="popup-card selectable"
+              @click="selectUserCard(card.id)"
+          >
+            <img :src="card.image" />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
-
 
 <style scoped>
 .trade-card {
   overflow: hidden;
-  max-height: 200%;
-  transition: max-height 0.3s ease;
+  max-width: 1000px;
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
+  gap: 16px;
   padding: 24px;
   background-color: #fff;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  transition: max-height 0.4s ease, box-shadow 0.3s;
 }
 
 .trade-card:hover {
   border-color: #333;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.trade-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
 }
 
 .trade-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-width: 200px;
+  gap: 12px;
 }
 
 .user-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: #f0f0f0;
 }
 
-.user-info {
+.user-info-block {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
+  align-items: center;
+  gap: 16px;
+  min-width: 200px;
 }
 
 .username {
   font-weight: 600;
-  font-size: 16px;
   color: #333;
 }
 
@@ -163,24 +234,23 @@ function handleAddProposal(cardId: number) {
 
 .cards-container {
   display: flex;
-  gap: 16px;
-  flex: 1;
+  gap: 12px;
 }
 
 .card-slot {
   position: relative;
   width: 80px;
   height: 112px;
-  background-color: #f9f9f9;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.2s;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.card-slot:hover {
-  transform: translateY(-6px);
+.card-slot.active {
+  border-color: #333;
+  transform: scale(1.05);
 }
 
 .pokemon-card {
@@ -189,103 +259,152 @@ function handleAddProposal(cardId: number) {
   object-fit: cover;
 }
 
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-
-.overlay-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 0.85rem;
-  justify-content: center;
-  font-weight: 600;
-  color: #fff;
-  gap: 6px;
-}
-
-.plus-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.trade-button {
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border: 2px solid #333;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #333;
-}
-
-.trade-button:hover {
-  background-color: #333;
-  color: #fff;
-  transform: scale(1.05);
-}
-
-.trade-card.expanded {
-  max-height: 800px; /* ~200% do original, ajuste conforme necessário */
-  transition: max-height 0.4s ease;
-}
-
+/* Área expandida */
 .expanded-area {
   width: 100%;
   background-color: #f5f5f5;
   border-top: 1px solid #ddd;
-  padding: 24px 16px;
-  min-height: 150px;
-  animation: fadeIn 0.4s ease forwards;
+  padding: 20px;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.trade-expanded-content {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centraliza o grupo todo */
+  gap: 120px; /* espaço mais confortável entre cada item */
+  width: 100%;
+  box-sizing: border-box;
+}
+.selected-card img {
+  width: 100px;
+  height: 140px;
+  border: 3px solid #333;
+  border-radius: 8px;
+}
+
+.trade-icon img {
+  width: 70px;
+  opacity: 0.85;
+}
+
+.expanded-actions {
+  display: flex;
+  align-items: center;
+  gap: 50px;
+}
+
+.trade-button {
+  width: 90px;
+  height: 135px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+
+.trade-button:hover {
+  background: #333;
+  color: #fff;
 }
 
-@media (max-width: 768px) {
-  .trade-card {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.selected-mini {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
 
-  .trade-header {
-    min-width: unset;
-  }
+/* Botão de confirmar proposta (fica abaixo do + e à direita) */
+.confirm-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 160px;
+  height: 60px;
+  background-color: #333;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
 
-  .cards-container {
-    justify-content: center;
-  }
+.confirm-button:hover {
+  background-color: #000;
+  transform: scale(1.05);
+}
 
-  .trade-button {
-    width: 100%;
-  }
+/* === POPUP === */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-container {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  width: 80%;
+  max-width: 700px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.popup-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.popup-card {
+  width: 80px;
+  height: 112px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.popup-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.popup-card.selectable:hover {
+  border-color: #333;
+  transform: scale(1.05);
+  transition: 0.2s;
+}
+
+.popup-divider {
+  width: 100%;
+  height: 2px;
+  background-color: #eee;
+  margin: 20px 0;
 }
 </style>
