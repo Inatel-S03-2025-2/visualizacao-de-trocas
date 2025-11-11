@@ -6,13 +6,12 @@ const currentUser = ref({
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CurrentUser'
 })
 
-// MÉTODO EDUCATIVO: Adicionamos a propriedade 'to' a cada item para que
-// o <router-link> saiba para onde navegar.
+// Adicionamos as rotas
 const menuItems = ref([
   { icon: 'home', label: 'Home', active: true, to: '/' },
   { icon: 'plus', label: 'Add Trade', active: false, to: '/add-trade' },
   { icon: 'cards', label: 'My Cards', active: false, to: '/my-cards' },
-  { icon: 'heart', label: 'Favorites', active: false, to: '/wishlist' } // Rota para a sua nova página
+  { icon: 'heart', label: 'Favorites', active: false, to: '/wishlist' }
 ])
 </script>
 
@@ -33,29 +32,29 @@ const menuItems = ref([
         <span class="menu-icon">
           <template v-if="item.icon === 'home'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
           </template>
           <template v-else-if="item.icon === 'plus'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
           </template>
           <template v-else-if="item.icon === 'cards'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
-              <polyline points="17 2 17 7 7 7 7 2"></polyline>
+              <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+              <polyline points="17 2 17 7 7 7 7 2"/>
             </svg>
           </template>
           <template v-else-if="item.icon === 'heart'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </template>
-        </span
-        ></router-link>
+        </span>
+      </router-link>
     </nav>
   </aside>
 </template>
@@ -68,7 +67,9 @@ const menuItems = ref([
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  align-items: center;
+  gap: 48px; /* espaço entre o perfil e o menu */
+  justify-content: flex-start; /* tudo no topo */
 }
 
 .user-profile {
@@ -95,22 +96,29 @@ const menuItems = ref([
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 32px; /* espaçamento entre botões */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ocultar o terceiro item (My Cards) */
+.menu-item:nth-child(3) {
+  display: none;
 }
 
 .menu-item {
-  width: 56px;
-  height: 56px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #fff;
   border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s;
   color: #666;
-  text-decoration: none; /* ESSENCIAL para o router-link não sublinhar */
+  text-decoration: none;
 }
 
 .menu-item:hover {
@@ -136,6 +144,7 @@ const menuItems = ref([
     flex-direction: row;
     padding: 16px;
     gap: 16px;
+    justify-content: space-between;
   }
 
   .user-profile {
@@ -150,6 +159,13 @@ const menuItems = ref([
 
   .menu {
     flex-direction: row;
+    gap: 24px;
+    justify-content: center;
+  }
+
+  .menu-item {
+    width: 64px;
+    height: 64px;
   }
 }
 </style>
