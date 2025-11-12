@@ -45,8 +45,8 @@ const height = ref(0);
 const weight = ref(0);
 const genus = ref('');
 
+// Mapeamento de Tipo para Símbolo de Energia TCG
 const energySymbolMap: Record<string, string> = {
-  // 🛑 Cole seus links da web aqui
   'water': 'https://i.imgur.com/uGgzRK6.png',
   'fire': 'https://i.imgur.com/6Dus51N.png',
   'grass': 'https://i.imgur.com/iyJ8Nno.png',
@@ -57,16 +57,14 @@ const energySymbolMap: Record<string, string> = {
   'steel': 'https://i.imgur.com/TTjro2l.png',
   'dragon': 'https://i.imgur.com/cLVDok1.png',
   'normal': 'https://i.imgur.com/HNv9RZi.png',
-
-  // Mapeamentos do TCG (API -> Energia)
-  'poison': 'https://i.imgur.com/JBFepFN.png', // Veneno usa Psíquico
-  'bug': 'https://i.imgur.com/IrWLEs7.png',     // Inseto usa Grama
-  'ghost': 'https://i.imgur.com/JBFepFN.png',  // Fantasma usa Psíquico
-  'ground': 'https://i.imgur.com/8gUKcVr.png', // Terra usa Lutador
-  'rock': 'https://i.imgur.com/8gUKcVr.png',   // Pedra usa Lutador
-  'ice': 'https://i.imgur.com/hXZrrgo.png',      // Gelo usa Água
-  'fairy': 'https://sualink.com/imagem_psiquico.png',  // Fada usa Psíquico
-  'flying': 'https://i.imgur.com/frwYIiG.png',  // Voador usa Incolor
+  'poison': 'https://i.imgur.com/JBFepFN.png',
+  'bug': 'https://i.imgur.com/IrWLEs7.png',
+  'ghost': 'https://i.imgur.com/JBFepFN.png',
+  'ground': 'https://i.imgur.com/8gUKcVr.png',
+  'rock': 'https://i.imgur.com/8gUKcVr.png',
+  'ice': 'https://i.imgur.com/hXZrrgo.png',
+  'fairy': 'https://www.deviantart.com/biochao/art/Fairy-Energy-card-vector-symbol-906615563', // Este link pode não funcionar como <img>
+  'flying': 'https://i.imgur.com/frwYIiG.png',
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
@@ -85,8 +83,8 @@ const fetchPokemon = async (id: number) => {
     }
     const data: PokemonData = await res.json()
     pokemon.value = data
-    height.value = data.height/10;
-    weight.value = data.weight/10;
+    height.value = data.height / 10;
+    weight.value = data.weight / 10;
   } catch (e: any) {
     console.error('Erro ao carregar Pokémon:', e)
     error.value = e.message || 'Erro ao buscar dados do Pokémon.'
@@ -178,6 +176,11 @@ const imageUrl = computed(() =>
 const primaryType = computed(() => pokemon.value?.types?.[0]?.type?.name || 'normal')
 
 const bgColor = computed(() => typeColors[primaryType.value] || '#CCC')
+
+// ✅ PROPRIEDADE COMPUTADA ADICIONADA
+const energySymbolUrl = computed(() => {
+  return energySymbolMap[primaryType.value] || energySymbolMap['unknown'];
+});
 
 // Função auxiliar para encontrar estatísticas por nome
 const getStat = (name: 'hp' | 'attack' | 'special-attack'): number => {
@@ -300,11 +303,15 @@ const pokemonBackgroundStyle = computed(() => {
           class="content-area"
           :style="{ backgroundImage: cardBackgroundStyle }"
       >
+
         <div class="card-header">
           <span class="name">{{ pokemon.name.toUpperCase() }}</span>
-          <span class="hp">HP {{ hp }}</span>
-        </div>
 
+          <div class="header-right">
+            <span class="hp">HP {{ hp }}</span>
+            <img :src="energySymbolUrl" :alt="primaryType" class="energy-symbol" />
+          </div>
+        </div>
         <div
             class="image-container"
             :style="{ backgroundImage: pokemonBackgroundStyle }"
@@ -314,9 +321,6 @@ const pokemonBackgroundStyle = computed(() => {
 
         <div class="stats-bar">
           <span><b>{{ genus }}</b>. Length: {{ height }} m, Weight: {{ weight }} kg.</span>
-        </div>
-        <div class="info">
-          <span class="type-tag">{{ primaryType.toUpperCase() }}</span>
         </div>
 
         <div class="info">
@@ -399,6 +403,21 @@ const pokemonBackgroundStyle = computed(() => {
   margin-bottom: 1px;
 }
 
+/* ✅ NOVOS ESTILOS CSS ADICIONADOS */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Espaço entre o HP e o símbolo */
+}
+
+.energy-symbol {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+  flex-shrink: 0;
+}
+/* FIM DOS NOVOS ESTILOS */
+
 .content-area {
   width: 100%;
   height: 100%;
@@ -414,7 +433,8 @@ const pokemonBackgroundStyle = computed(() => {
 
 .hp {
   color: #d62828;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  white-space: nowrap;
 }
 
 .image-container {
@@ -428,7 +448,7 @@ const pokemonBackgroundStyle = computed(() => {
   align-items: center;
   height: 120px;
   margin: 6px 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7); /* ✅ ADICIONE ESTA LINHA */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
 }
 
 .image-container img {
@@ -438,35 +458,23 @@ const pokemonBackgroundStyle = computed(() => {
 }
 
 .stats-bar {
-  /* Cor de fundo dourada (você pode ajustar) */
   background-color: #efd05b;
-
-  /* Borda sutil para dar acabamento */
   border: 1px solid #DAA520;
   border-radius: 4px;
-
-  /* 🛑 MUDANÇA: 'center' faz o "..." aparecer no meio */
-  text-align: left;     /* Alinha à esquerda para o "..." funcionar bem */
-
-  /* 🛑 MUDANÇA: Adicionado padding lateral para não colar na borda */
-  padding: 3px 6px 15px;     /* 3px em cima/baixo, 6px nos lados */
-  margin: 5px;
+  text-align: left;
+  padding: 3px 6px 1px;
+  margin: px;
   font-weight: bold;
-
-  /* Texto */
   font-size: 8px;
-  color: #000000; /* Marrom escuro */
+  color: #000000;
   font-family: 'Segoe UI', sans-serif;
   box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
-
-  /* ✅ ADICIONE ESTAS 3 LINHAS */
-  white-space: nowrap;      /* Impede o texto de quebrar a linha */
-  overflow: hidden;         /* Esconde o texto que "vazou" */
-  text-overflow: ellipsis;  /* Adiciona "..." no final se o texto for cortado */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stats-bar b {
-  /* Deixa o "Genus" (ex: Mouse Pokémon) mais escuro/forte */
   color: #333;
   font-weight: 700;
 }
