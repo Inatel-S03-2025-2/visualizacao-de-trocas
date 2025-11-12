@@ -16,6 +16,9 @@ interface PokemonData {
     other: {
       'official-artwork': {
         front_default: string
+      },
+      dream_world?: { // Adicionado '?' pois pode não existir
+        front_default: string
       }
     }
   }
@@ -35,9 +38,12 @@ interface PokemonData {
 const pokemon = ref<PokemonData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-// ✅ NOVOS ESTADOS PARA EVOLUÇÃO
 const evolutionChain = ref<any>(null);
 const isFinalEvolution = ref(false);
+
+const height = ref(0);
+const weight = ref(0);
+const genus = ref('');
 
 
 // Função para buscar dados da PokéAPI
@@ -54,6 +60,8 @@ const fetchPokemon = async (id: number) => {
     }
     const data: PokemonData = await res.json()
     pokemon.value = data
+    height.value = data.height/10;
+    weight.value = data.weight/10;
   } catch (e: any) {
     console.error('Erro ao carregar Pokémon:', e)
     error.value = e.message || 'Erro ao buscar dados do Pokémon.'
@@ -62,7 +70,7 @@ const fetchPokemon = async (id: number) => {
   }
 }
 
-// ✅ NOVA FUNÇÃO: Busca a cadeia de evolução e checa se é o estágio final
+// Busca a cadeia de evolução e checa se é o estágio final
 const fetchEvolutionChain = async (speciesUrl: string) => {
   try {
     const speciesRes = await fetch(speciesUrl);
@@ -74,6 +82,9 @@ const fetchEvolutionChain = async (speciesUrl: string) => {
     const evoChainData = await evoChainRes.json();
 
     evolutionChain.value = evoChainData.chain;
+
+    const englishGenus = speciesData.genera.find((g: any) => g.language.name === 'en');
+    genus.value = englishGenus ? englishGenus.genus : 'Unknown Pokémon';
 
     // Função recursiva para encontrar o pokemon e checar o "evolves_to"
     const findEvolution = (chain: any) => {
@@ -98,15 +109,13 @@ const fetchEvolutionChain = async (speciesUrl: string) => {
 // Observa 'pokemon.value' e chama a busca da evolução
 watch(pokemon, (newPokemon) => {
   if (newPokemon) {
-    // Busca a URL da espécie dentro do 'pokemon.value'
-    // Nota: A API de pokemon não tem o species.url, precisamos buscar pelo nome
     const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
     fetchEvolutionChain(speciesUrl);
   }
 });
 
 
-// Busca inicial ao montar (ou quando 'id' for setado no sidebar)
+// Busca inicial ao montar
 onMounted(() => {
   if (props.id) {
     fetchPokemon(props.id)
@@ -136,6 +145,7 @@ const typeColors: Record<string, string> = {
 
 // Valores Computados
 const imageUrl = computed(() =>
+    pokemon.value?.sprites?.other?.dream_world?.front_default ||
     pokemon.value?.sprites?.other['official-artwork']?.front_default ||
     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'
 )
@@ -154,14 +164,12 @@ const hp = computed(() => getStat('hp'))
 const attack = computed(() => getStat('attack'))
 const spAttack = computed(() => getStat('special-attack'))
 
-// ✅ FUNÇÃO AUXILIAR: Gera um número aleatório
+// FUNÇÃO AUXILIAR: Gera um número aleatório
 const getRandomNumber = (min: number, max: number) => {
-  // Ajuste para array (base 0) ou contagem (base 1)
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 
-// 🛑 MUDANÇA 1: Renomeado para 'cardTextureMap'
 // Mapeamento de Tipo para Textura do CARD (FUNDO PRINCIPAL)
 const cardTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'fogo', 'grass': 'grass', 'electric': 'eletric',
@@ -171,13 +179,12 @@ const cardTextureMap: Record<string, string> = {
   'flying': 'normal', 'unknown': 'normal',
 };
 
-// 🛑 MUDANÇA 2: Nova tabela 'pokemonTextureMap'
 // Mapeamento de Tipo para Textura do POKÉMON (IMAGEM)
 const pokemonTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'ground', 'grass': 'grass', 'electric': 'electric',
   'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
   'steel': 'ground', 'normal': 'grass', 'ground': 'ground', 'rock': 'ground',
-  'poison': 'dark', // ✅ Exemplo: 'poison' é 'dark' aqui e 'Psy' no card
+  'poison': 'dark',
   'bug': 'grass',
   'fairy': 'Psy',
   'ghost': 'dark',
@@ -187,73 +194,65 @@ const pokemonTextureMap: Record<string, string> = {
 };
 
 
-// ✅ MUDANÇA 1: 'textureCounts' ATUALIZADO
+// MOCK: Contagem de Arquivos por Pasta/Tipo
 const textureCounts: Record<string, Record<string, number>> = {
   BGNormal: {
-    // VERIFIQUE ESTAS CONTANGENS!
     water: 3, fire: 2, grass: 4, normal: 1, Psy: 2, ground: 3,
     fighting: 2, dark: 1, dragon: 1, cinza: 1, eletric: 3, fogo: 2,
   },
   BGFinal: {
-    all: 6 // ✅ Contagem dos 6 arquivos BGf-
+    all: 6
   },
   BGCard: {
     water: 1, fire: 1, grass: 1, electric: 1, Psy: 1, normal: 1,
   }
 };
 
-// ✅ MUDANÇA 2: Array 'finalEvolutionBackgrounds' REMOVIDO
 
-
-// 🛑 PROPRIEDADE 1: Fundo da CARTA (Simples, BGCard)
+// PROPRIEDADE 1: Fundo da CARTA (Simples, BGCard)
 const cardBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
-  // Usando 'cardTextureMap'
   const fileKey = cardTextureMap[typeName] || 'normal';
 
-  // 🛑 VERIFIQUE A EXTENSÃO DO BGCARD AQUI
-  // Seus arquivos BGCard são .jpg? Se forem .png, mude abaixo.
+  // Lembre-se de verificar a extensão do BGCard (ex: .jpg)
   const texturePath = `/BG/BGCard/${fileKey}-texture.jpg`;
 
   return `url('${texturePath}')`;
 });
 
 
-// ✅ MUDANÇA 3: 'pokemonBackgroundStyle' ATUALIZADO
+// PROPRIEDADE 2: Fundo do POKÉMON
 const pokemonBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
-  // Usando 'pokemonTextureMap'
   const fileKey = pokemonTextureMap[typeName] || 'normal';
 
   let texturePath = '';
 
   if (isFinalEvolution.value) {
-    // ✅ LÓGICA ATUALIZADA PARA 'BGf-{num}'
+    // Lógica para BGFinal (ex: BGf-1.png)
     const baseFolder = 'BGFinal';
-    const fileNamePrefix = 'BGf'; // O novo prefixo
+    const fileNamePrefix = 'BGf';
 
-    // Pega a contagem do 'textureCounts.BGFinal.all'
     const maxCount = textureCounts[baseFolder]?.all || 1;
     const randomIndex = getRandomNumber(1, maxCount);
 
-    // 🛑 VERIFIQUE A EXTENSÃO AQUI! (.png? .jpg?)
-    // Assumindo .png para ser igual ao BGNormal e seus arquivos 'BGf'
+    // Lembre-se de verificar a extensão do BGFinal (ex: .png)
     texturePath = `/BG/${baseFolder}/${fileNamePrefix}-${randomIndex}.png`;
 
   } else {
-    // LÓGICA BGNORMAL (Esta parte não mudou)
+    // Lógica para BGNormal (ex: water-1.png)
     const baseFolder = 'BGNormal';
     const fileNamePrefix = fileKey;
 
     const maxCount = textureCounts[baseFolder]?.[fileKey] || 1;
     const randomIndex = getRandomNumber(1, maxCount);
 
+    // Lembre-se de verificar a extensão do BGNormal (ex: .png)
     texturePath = `/BG/${baseFolder}/${fileKey}/${fileNamePrefix}-${randomIndex}.png`;
   }
 
   return `url('${texturePath}')`;
 });
-// FIM NOVO CÓDIGO
 </script>
 
 <template>
@@ -288,6 +287,13 @@ const pokemonBackgroundStyle = computed(() => {
           <img :src="imageUrl" :alt="pokemon.name" />
         </div>
 
+        <div class="stats-bar">
+          <span><b>{{ genus }}</b>. Length: {{ height }} m, Weight: {{ weight }} kg.</span>
+        </div>
+        <div class="info">
+          <span class="type-tag">{{ primaryType.toUpperCase() }}</span>
+        </div>
+
         <div class="info">
           <span class="type-tag">{{ primaryType.toUpperCase() }}</span>
         </div>
@@ -295,6 +301,7 @@ const pokemonBackgroundStyle = computed(() => {
         <div class="debug-evolution">
           Evolução Final: <b>{{ isFinalEvolution }}</b>
         </div>
+
         <div class="attacks">
           <div class="attack">
             <span class="attack-name">Attack</span>
@@ -311,8 +318,6 @@ const pokemonBackgroundStyle = computed(() => {
 </template>
 
 <style scoped>
-/* ... (Todo o seu CSS original permanece aqui) ... */
-
 .error-card {
   width: 250px;
   aspect-ratio: 63 / 88;
@@ -333,7 +338,7 @@ const pokemonBackgroundStyle = computed(() => {
   position: relative;
   aspect-ratio: 63 / 88;
   width: 250px;
-  border: 4px solid #ffcc00;
+  border: 4px solid #ffd605;
   background-color: #ffcc00;
   border-radius: 12px;
   overflow: hidden;
@@ -363,9 +368,10 @@ const pokemonBackgroundStyle = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #333;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .content-area {
@@ -383,12 +389,12 @@ const pokemonBackgroundStyle = computed(() => {
 
 .hp {
   color: #d62828;
-  font-size: 14px;
+  font-size: 1.2rem;
 }
 
 .image-container {
-  border: 2px solid #ffcc00; /* ✅ Usei a var(--type-color) aqui */
-  border-radius: 8px;
+  border: 4px solid #f3cb49;
+  border-radius: 1px;
   background-size: cover;
   background-repeat: no-repeat;
   background-color: transparent;
@@ -397,12 +403,47 @@ const pokemonBackgroundStyle = computed(() => {
   align-items: center;
   height: 120px;
   margin: 6px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7); /* ✅ ADICIONE ESTA LINHA */
 }
 
 .image-container img {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 80%;
+  max-height: 80%;
   object-fit: contain;
+}
+
+.stats-bar {
+  /* Cor de fundo dourada (você pode ajustar) */
+  background-color: #efd05b;
+
+  /* Borda sutil para dar acabamento */
+  border: 1px solid #DAA520;
+  border-radius: 4px;
+
+  /* 🛑 MUDANÇA: 'center' faz o "..." aparecer no meio */
+  text-align: left;     /* Alinha à esquerda para o "..." funcionar bem */
+
+  /* 🛑 MUDANÇA: Adicionado padding lateral para não colar na borda */
+  padding: 3px 6px 15px;     /* 3px em cima/baixo, 6px nos lados */
+  margin: 5px;
+  font-weight: bold;
+
+  /* Texto */
+  font-size: 8px;
+  color: #000000; /* Marrom escuro */
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
+
+  /* ✅ ADICIONE ESTAS 3 LINHAS */
+  white-space: nowrap;      /* Impede o texto de quebrar a linha */
+  overflow: hidden;         /* Esconde o texto que "vazou" */
+  text-overflow: ellipsis;  /* Adiciona "..." no final se o texto for cortado */
+}
+
+.stats-bar b {
+  /* Deixa o "Genus" (ex: Mouse Pokémon) mais escuro/forte */
+  color: #333;
+  font-weight: 700;
 }
 
 .info {
@@ -412,7 +453,6 @@ const pokemonBackgroundStyle = computed(() => {
   margin-bottom: 6px;
 }
 
-/* ✅ ESTILO PARA O DEBUG */
 .debug-evolution {
   background-color: rgba(0, 0, 0, 0.75);
   color: #fff;
@@ -441,7 +481,6 @@ const pokemonBackgroundStyle = computed(() => {
   border-top: 1px dashed #ffcc00;
 }
 
-/* ... (Resto do seu CSS, incluindo .holo e .loading-card) ... */
 .holo::before {
   content: "";
   position: absolute;
