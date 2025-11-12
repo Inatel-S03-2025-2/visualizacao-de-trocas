@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 
 // Define a interface para as props
 interface Props {
@@ -35,12 +35,17 @@ interface PokemonData {
 const pokemon = ref<PokemonData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+// ✅ NOVOS ESTADOS PARA EVOLUÇÃO
+const evolutionChain = ref<any>(null);
+const isFinalEvolution = ref(false);
+
 
 // Função para buscar dados da PokéAPI
 const fetchPokemon = async (id: number) => {
   loading.value = true
   error.value = null
   pokemon.value = null
+  isFinalEvolution.value = false; // Reseta o estado
 
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
@@ -57,6 +62,50 @@ const fetchPokemon = async (id: number) => {
   }
 }
 
+// ✅ NOVA FUNÇÃO: Busca a cadeia de evolução e checa se é o estágio final
+const fetchEvolutionChain = async (speciesUrl: string) => {
+  try {
+    const speciesRes = await fetch(speciesUrl);
+    if (!speciesRes.ok) throw new Error("Species not found.");
+    const speciesData = await speciesRes.json();
+
+    const evoChainRes = await fetch(speciesData.evolution_chain.url);
+    if (!evoChainRes.ok) throw new Error("Evolution Chain not found.");
+    const evoChainData = await evoChainRes.json();
+
+    evolutionChain.value = evoChainData.chain;
+
+    // Função recursiva para encontrar o pokemon e checar o "evolves_to"
+    const findEvolution = (chain: any) => {
+      if (chain.species.name === pokemon.value?.name) {
+        return chain.evolves_to.length === 0;
+      }
+      for (const nextChain of chain.evolves_to) {
+        const found = findEvolution(nextChain);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    };
+
+    isFinalEvolution.value = findEvolution(evoChainData.chain) ?? false;
+
+  } catch (e: any) {
+    console.error('Erro ao buscar cadeia de evolução:', e);
+    isFinalEvolution.value = false; // Garante que seja false em caso de erro
+  }
+}
+
+// Observa 'pokemon.value' e chama a busca da evolução
+watch(pokemon, (newPokemon) => {
+  if (newPokemon) {
+    // Busca a URL da espécie dentro do 'pokemon.value'
+    // Nota: A API de pokemon não tem o species.url, precisamos buscar pelo nome
+    const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
+    fetchEvolutionChain(speciesUrl);
+  }
+});
+
+
 // Busca inicial ao montar (ou quando 'id' for setado no sidebar)
 onMounted(() => {
   if (props.id) {
@@ -64,7 +113,7 @@ onMounted(() => {
   }
 })
 
-// Mapeamento das Cores por tipo
+// Mapeamento das Cores por tipo (TABELA DE COR)
 const typeColors: Record<string, string> = {
   electric: '#FFD700',
   fire: '#FF4500',
@@ -80,9 +129,9 @@ const typeColors: Record<string, string> = {
   ghost: '#6A5ACD',
   dragon: '#7038F8',
   dark: '#705848',
-  poison: '#A040A0', // Adicionado: Tipo que estava faltando no seu map
-  fighting: '#C03028', // Adicionado
-  steel: '#B8B8D0', // Adicionado
+  poison: '#A040A0',
+  fighting: '#C03028',
+  steel: '#B8B8D0',
 }
 
 // Valores Computados
@@ -105,6 +154,106 @@ const hp = computed(() => getStat('hp'))
 const attack = computed(() => getStat('attack'))
 const spAttack = computed(() => getStat('special-attack'))
 
+// ✅ FUNÇÃO AUXILIAR: Gera um número aleatório
+const getRandomNumber = (min: number, max: number) => {
+  // Ajuste para array (base 0) ou contagem (base 1)
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+
+// 🛑 MUDANÇA 1: Renomeado para 'cardTextureMap'
+// Mapeamento de Tipo para Textura do CARD (FUNDO PRINCIPAL)
+const cardTextureMap: Record<string, string> = {
+  'water': 'water', 'fire': 'fogo', 'grass': 'grass', 'electric': 'eletric',
+  'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
+  'steel': 'normal', 'normal': 'normal', 'ground': 'ground', 'rock': 'ground',
+  'poison': 'Psy', 'bug': 'grass', 'fairy': 'Psy', 'ghost': 'Psy', 'ice': 'water',
+  'flying': 'normal', 'unknown': 'normal',
+};
+
+// 🛑 MUDANÇA 2: Nova tabela 'pokemonTextureMap'
+// Mapeamento de Tipo para Textura do POKÉMON (IMAGEM)
+const pokemonTextureMap: Record<string, string> = {
+  'water': 'water', 'fire': 'ground', 'grass': 'grass', 'electric': 'electric',
+  'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
+  'steel': 'ground', 'normal': 'grass', 'ground': 'ground', 'rock': 'ground',
+  'poison': 'dark', // ✅ Exemplo: 'poison' é 'dark' aqui e 'Psy' no card
+  'bug': 'grass',
+  'fairy': 'Psy',
+  'ghost': 'dark',
+  'ice': 'water',
+  'flying': 'normal',
+  'unknown': 'normal',
+};
+
+
+// ✅ MUDANÇA 1: 'textureCounts' ATUALIZADO
+const textureCounts: Record<string, Record<string, number>> = {
+  BGNormal: {
+    // VERIFIQUE ESTAS CONTANGENS!
+    water: 3, fire: 2, grass: 4, normal: 1, Psy: 2, ground: 3,
+    fighting: 2, dark: 1, dragon: 1, cinza: 1, eletric: 3, fogo: 2,
+  },
+  BGFinal: {
+    all: 6 // ✅ Contagem dos 6 arquivos BGf-
+  },
+  BGCard: {
+    water: 1, fire: 1, grass: 1, electric: 1, Psy: 1, normal: 1,
+  }
+};
+
+// ✅ MUDANÇA 2: Array 'finalEvolutionBackgrounds' REMOVIDO
+
+
+// 🛑 PROPRIEDADE 1: Fundo da CARTA (Simples, BGCard)
+const cardBackgroundStyle = computed(() => {
+  const typeName = primaryType.value;
+  // Usando 'cardTextureMap'
+  const fileKey = cardTextureMap[typeName] || 'normal';
+
+  // 🛑 VERIFIQUE A EXTENSÃO DO BGCARD AQUI
+  // Seus arquivos BGCard são .jpg? Se forem .png, mude abaixo.
+  const texturePath = `/BG/BGCard/${fileKey}-texture.jpg`;
+
+  return `url('${texturePath}')`;
+});
+
+
+// ✅ MUDANÇA 3: 'pokemonBackgroundStyle' ATUALIZADO
+const pokemonBackgroundStyle = computed(() => {
+  const typeName = primaryType.value;
+  // Usando 'pokemonTextureMap'
+  const fileKey = pokemonTextureMap[typeName] || 'normal';
+
+  let texturePath = '';
+
+  if (isFinalEvolution.value) {
+    // ✅ LÓGICA ATUALIZADA PARA 'BGf-{num}'
+    const baseFolder = 'BGFinal';
+    const fileNamePrefix = 'BGf'; // O novo prefixo
+
+    // Pega a contagem do 'textureCounts.BGFinal.all'
+    const maxCount = textureCounts[baseFolder]?.all || 1;
+    const randomIndex = getRandomNumber(1, maxCount);
+
+    // 🛑 VERIFIQUE A EXTENSÃO AQUI! (.png? .jpg?)
+    // Assumindo .png para ser igual ao BGNormal e seus arquivos 'BGf'
+    texturePath = `/BG/${baseFolder}/${fileNamePrefix}-${randomIndex}.png`;
+
+  } else {
+    // LÓGICA BGNORMAL (Esta parte não mudou)
+    const baseFolder = 'BGNormal';
+    const fileNamePrefix = fileKey;
+
+    const maxCount = textureCounts[baseFolder]?.[fileKey] || 1;
+    const randomIndex = getRandomNumber(1, maxCount);
+
+    texturePath = `/BG/${baseFolder}/${fileKey}/${fileNamePrefix}-${randomIndex}.png`;
+  }
+
+  return `url('${texturePath}')`;
+});
+// FIM NOVO CÓDIGO
 </script>
 
 <template>
@@ -123,13 +272,19 @@ const spAttack = computed(() => getStat('special-attack'))
       :style="{ '--type-color': bgColor }"
   >
     <div class="card-inner">
-      <div class="content-area">
+      <div
+          class="content-area"
+          :style="{ backgroundImage: cardBackgroundStyle }"
+      >
         <div class="card-header">
           <span class="name">{{ pokemon.name.toUpperCase() }}</span>
           <span class="hp">HP {{ hp }}</span>
         </div>
 
-        <div class="image-container">
+        <div
+            class="image-container"
+            :style="{ backgroundImage: pokemonBackgroundStyle }"
+        >
           <img :src="imageUrl" :alt="pokemon.name" />
         </div>
 
@@ -137,6 +292,9 @@ const spAttack = computed(() => getStat('special-attack'))
           <span class="type-tag">{{ primaryType.toUpperCase() }}</span>
         </div>
 
+        <div class="debug-evolution">
+          Evolução Final: <b>{{ isFinalEvolution }}</b>
+        </div>
         <div class="attacks">
           <div class="attack">
             <span class="attack-name">Attack</span>
@@ -153,9 +311,7 @@ const spAttack = computed(() => getStat('special-attack'))
 </template>
 
 <style scoped>
-/*
-  ... Mantenha todo o seu CSS original aqui (incluindo .pokemon-card, .card-inner, .holo, .loading-card, etc.).
-*/
+/* ... (Todo o seu CSS original permanece aqui) ... */
 
 .error-card {
   width: 250px;
@@ -163,7 +319,7 @@ const spAttack = computed(() => getStat('special-attack'))
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align: center;
   background-color: #ffebeb;
   border: 2px solid #ff4444;
   border-radius: 12px;
@@ -173,19 +329,13 @@ const spAttack = computed(() => getStat('special-attack'))
   text-align: center;
 }
 
-/* O resto do seu CSS original do PokemonCard.vue */
 .pokemon-card {
   position: relative;
   aspect-ratio: 63 / 88;
   width: 250px;
-
-  /* ✅ ALTERAÇÃO APLICADA AQUI: Fundo do card agora é a cor sólida do tipo */
-  background-color: var(--type-color); /* Cor sólida do tipo */
-
-  /* A borda amarela externa */
   border: 4px solid #ffcc00;
+  background-color: #ffcc00;
   border-radius: 12px;
-
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -202,9 +352,8 @@ const spAttack = computed(() => getStat('special-attack'))
 .card-inner {
   width: calc(100% - 16px);
   height: calc(100% - 16px);
-  border: 2px solid #ffcc00;
+  background-color: transparent;
   border-radius: 8px;
-  background-color: #faf9f6; /* Fundo base */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -222,10 +371,9 @@ const spAttack = computed(() => getStat('special-attack'))
 .content-area {
   width: 100%;
   height: 100%;
-
-  /* Fundo do conteúdo interno é a cor sólida do tipo */
-  background-color: var(--type-color);
-
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-color: transparent;
   border-radius: 6px;
   padding: 8px;
   display: flex;
@@ -239,11 +387,11 @@ const spAttack = computed(() => getStat('special-attack'))
 }
 
 .image-container {
-  /* Mantendo o gradiente de fundo sutil para a caixa de imagem,
-     para dar profundidade à imagem do Pokémon, independentemente do tipo. */
-  border: 2px solid #ffcc00;
+  border: 2px solid #ffcc00; /* ✅ Usei a var(--type-color) aqui */
   border-radius: 8px;
-  background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-color: transparent;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -264,15 +412,16 @@ const spAttack = computed(() => getStat('special-attack'))
   margin-bottom: 6px;
 }
 
-.type-tag {
-  display: inline-block;
-  background-color: var(--type-color);
+/* ✅ ESTILO PARA O DEBUG */
+.debug-evolution {
+  background-color: rgba(0, 0, 0, 0.75);
   color: #fff;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 10px;
-  margin-bottom: 2px;
+  font-size: 11px;
+  text-align: center;
+  padding: 3px 0;
+  font-family: monospace;
+  margin-bottom: 6px;
+  border-radius: 4px;
 }
 
 .attacks {
@@ -292,7 +441,7 @@ const spAttack = computed(() => getStat('special-attack'))
   border-top: 1px dashed #ffcc00;
 }
 
-/* ✨ Holográfico */
+/* ... (Resto do seu CSS, incluindo .holo e .loading-card) ... */
 .holo::before {
   content: "";
   position: absolute;
