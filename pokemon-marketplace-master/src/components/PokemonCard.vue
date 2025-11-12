@@ -45,6 +45,31 @@ const height = ref(0);
 const weight = ref(0);
 const genus = ref('');
 
+const energySymbolMap: Record<string, string> = {
+  // 🛑 Cole seus links da web aqui
+  'water': 'https://i.imgur.com/uGgzRK6.png',
+  'fire': 'https://i.imgur.com/6Dus51N.png',
+  'grass': 'https://i.imgur.com/iyJ8Nno.png',
+  'electric': 'https://i.imgur.com/fBKUHcT.png',
+  'psychic': 'https://i.imgur.com/APVMNYn.png',
+  'fighting': 'https://i.imgur.com/S2qyp1S.png',
+  'dark': 'https://i.imgur.com/KHFx3pQ.png',
+  'steel': 'https://i.imgur.com/TTjro2l.png',
+  'dragon': 'https://i.imgur.com/cLVDok1.png',
+  'normal': 'https://i.imgur.com/HNv9RZi.png',
+
+  // Mapeamentos do TCG (API -> Energia)
+  'poison': 'https://i.imgur.com/JBFepFN.png', // Veneno usa Psíquico
+  'bug': 'https://i.imgur.com/IrWLEs7.png',     // Inseto usa Grama
+  'ghost': 'https://i.imgur.com/JBFepFN.png',  // Fantasma usa Psíquico
+  'ground': 'https://i.imgur.com/8gUKcVr.png', // Terra usa Lutador
+  'rock': 'https://i.imgur.com/8gUKcVr.png',   // Pedra usa Lutador
+  'ice': 'https://i.imgur.com/hXZrrgo.png',      // Gelo usa Água
+  'fairy': 'https://sualink.com/imagem_psiquico.png',  // Fada usa Psíquico
+  'flying': 'https://i.imgur.com/frwYIiG.png',  // Voador usa Incolor
+  'unknown': 'https://i.imgur.com/5nNgeLM.png'
+};
+
 
 // Função para buscar dados da PokéAPI
 const fetchPokemon = async (id: number) => {
