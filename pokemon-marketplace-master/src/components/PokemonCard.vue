@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue';
+// ✅ 1. 'defineEmits' removido, 'inject' mantido
+import { ref, computed, watch, onMounted, nextTick, onUnmounted, inject} from 'vue';
 
 interface Props {
   id: number
@@ -7,6 +8,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// ... (Sua interface PokemonData permanece a mesma) ...
 interface PokemonData {
   name: string
   sprites: {
@@ -22,9 +25,9 @@ interface PokemonData {
   types: Array<{
     type: {
       name: string;
-      url: string; // <<< MUDANÇA: Adicionado 'url' aqui para tipagem
+      url: string;
     },
-    slot: number; // <<< MUDANÇA: Adicionado 'slot' aqui para tipagem
+    slot: number;
   }>
   stats: Array<{
     base_stat: number
@@ -46,9 +49,62 @@ interface PokemonData {
   }>;
 }
 
+// 🛑 2. Linha do 'emit' que estava aqui foi REMOVIDA
+
+// ✅ 3. Injetando os controles do modal fornecidos pelo App.vue
+const modalControls = inject('modal-controls') as {
+  openModal: (data: { id: number, rarity?: 'normal' | 'holo' }) => void
+} | undefined;
+
 const pokemon = ref<PokemonData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+// ... (O resto dos seus 'refs' permanece o mesmo) ...
+
+
+// --- ✅ 4. LÓGICA DO LONG PRESS ADICIONADA (A versão correta, com 'inject') ---
+const longPressTimer = ref<NodeJS.Timeout | null>(null);
+const LONG_PRESS_DURATION = 700; // 700ms para segurar
+
+/**
+ * Inicia o timer quando o usuário clica/toca.
+ */
+function handlePressDown() {
+  // Se já existir um timer, limpa (segurança)
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value);
+  }
+
+  // Cria o novo timer
+  longPressTimer.value = setTimeout(() => {
+    console.log('✅ LONG PRESS (Global)!');
+
+    // Chama a função 'openModal' injetada
+    if (modalControls && typeof modalControls.openModal === 'function') {
+      modalControls.openModal({
+        id: props.id,
+        rarity: props.rarity
+      });
+    } else {
+      console.warn("Controle do modal ('modal-controls') não foi 'provided' pelo App.vue!");
+    }
+
+    longPressTimer.value = null; // Limpa o timer
+  }, LONG_PRESS_DURATION);
+}
+
+/**
+ * Cancela o timer se o usuário soltar o clique,
+ * mover o mouse para fora, ou soltar o toque.
+ */
+function cancelPress() {
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value);
+    longPressTimer.value = null;
+  }
+}
+// --- FIM DA LÓGICA DO LONG PRESS ---
+
 const evolutionChain = ref<any>(null);
 const isFinalEvolution = ref(false);
 const height = ref(0);
@@ -71,6 +127,7 @@ const pokemonCard = ref<HTMLElement | null>(null)
 const fonteDetalhes = ref<number | null>(null);
 
 const energySymbolMap: Record<string, string> = {
+  // ... (Seu mapa de símbolos permanece o mesmo) ...
   'water': 'https://i.imgur.com/uGgzRK6.png',
   'fire': 'https://i.imgur.com/6Dus51N.png',
   'grass': 'https://i.imgur.com/iyJ8Nno.png',
@@ -91,18 +148,20 @@ const energySymbolMap: Record<string, string> = {
       '-bed6-e8e0b9ce2af0/d6jtiuy-f4dc7bea-beb7-417b-ba85-736ae9f5c030.png?token=eyJ0eXA' +
       'iOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQ' +
       'xNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIs' +
-      'Im9iaiI6W1t7InBhdGgiOiIvZi8wNzI2ZmJkZC1hNmE2LTQ4NzEtYmVkNi1lOGUwYjljZTJhZjAvZDZqd' +
+      'Im9iaiI6W1t7InBhdGgiOiIvZi8wNzI1ZmJkZC1hNmE2LTQ4NzEtYmVkNi1lOGUwYjljZTJhZjAvZDZqd' +
       'Gl1eS1mNGRjN2JlYS1iZWI3LTQxN2ItYmE4NS03MzZhZTlmNWMwMzAucG5nIn1dXSwiYXVkIjpbInVybj' +
       'pzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.-KQR9aFKGB-XMw-8v1BIiZj2c0z6tCFCBSd1nmltnqA',
   'flying': 'https://i.imgur.com/frwYIiG.png',
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
-// ... (Todas as suas funções de reescaleText, recalcularFontes, watch(pokemon), computed(paddingAjustado), etc. permanecem iguais)
-// ... (Pulando para fetchPokemon para mostrar as mudanças) ...
+
+// 🛑 O SEGUNDO BLOCO 'longPressTimer' (DUPLICADO) FOI REMOVIDO DAQUI
+
 
 // FUNÇÃO DE RESCALE TEXT
 function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel: string) {
+  // ... (Sua função permanece a mesma) ...
   if (!containerElement) return
 
   const largura = containerElement.offsetWidth
@@ -115,6 +174,7 @@ function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel
 
 
 function recalcularFontes() {
+  // ... (Sua função permanece a mesma) ...
   if (pokemonCard.value) {
     const el = pokemonCard.value;
 
@@ -149,6 +209,7 @@ function recalcularFontes() {
 }
 
 watch(pokemon, async (novoPokemon) => {
+  // ... (Sua função permanece a mesma) ...
   if (novoPokemon) {
     // Garante que a primeira renderização do novo Pokémon terminou
     await nextTick();
@@ -162,6 +223,7 @@ watch(pokemon, async (novoPokemon) => {
 }, { immediate: true });
 
 const paddingAjustado = computed(() => {
+  // ... (Sua função permanece a mesma) ...
   if (!pokemonCard.value) return 0; // Proteção
 
   // console.log('📏 [paddingAjustado] fonteDetalhes atual:', fonteDetalhes.value);
@@ -179,6 +241,7 @@ const paddingAjustado = computed(() => {
 });
 
 watch(paddingAjustado, (padding) => {
+  // ... (Sua função permanece a mesma) ...
   if (pokemonCard.value) {
     // Isso garante que a variável CSS está definida pelo computed.
     // O reescaleText no computed já faz isso, mas podemos ser explícitos:
@@ -188,6 +251,7 @@ watch(paddingAjustado, (padding) => {
 
 
 const fetchPokemon = async (id: number) => {
+  // ... (Sua função permanece a mesma) ...
   loading.value = true
   error.value = null
   pokemon.value = null
@@ -223,6 +287,7 @@ const fetchPokemon = async (id: number) => {
 
 // <<< MUDANÇA 3: Nova função para buscar Fraqueza/Resistência
 const fetchDamageRelations = async (pokemonData: PokemonData) => {
+  // ... (Sua função permanece a mesma) ...
   // Define fallbacks caso a busca falhe
   const fallbackSymbol = energySymbolMap['normal'];
   weaknessSymbolUrl.value = fallbackSymbol;
@@ -260,6 +325,7 @@ const fetchDamageRelations = async (pokemonData: PokemonData) => {
 
 // Busca a cadeia de evolução e checa se é o estágio final
 const fetchEvolutionChain = async (speciesUrl: string) => {
+  // ... (Sua função permanece a mesma) ...
   try {
     const speciesRes = await fetch(speciesUrl);
     if (!speciesRes.ok) throw new Error("Species not found.");
@@ -295,6 +361,7 @@ const fetchEvolutionChain = async (speciesUrl: string) => {
 
 // Observa 'pokemon.value' e chama a busca da evolução
 watch(pokemon, (newPokemon) => {
+  // ... (Sia função permanece a mesma) ...
   if (newPokemon) {
     const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
     fetchEvolutionChain(speciesUrl);
@@ -307,6 +374,7 @@ watch(pokemon, (newPokemon) => {
 
 // Busca inicial ao montar
 onMounted(() => {
+  // ... (Sua função permanece a mesma) ...
   if (props.id) {
     fetchPokemon(props.id)
   }
@@ -316,8 +384,8 @@ onMounted(() => {
   window.addEventListener('resize', recalcularFontes)
 })
 
-// ... (Restante do seu script, typeColors, computed properties, etc., permanece o mesmo) ...
-// ... (O script restante é idêntico ao seu original) ...
+// ... (Todo o resto do seu script - typeColors, computed, etc - permanece o mesmo) ...
+// (O restante do seu script está idêntico ao que já tínhamos)
 
 // Mapeamento das Cores por tipo (TABELA DE COR)
 const typeColors: Record<string, string> = {
@@ -499,18 +567,21 @@ const pokemonBackgroundStyle = computed(() => {
 
   let texturePath = '';
 
+  // Esta é a lógica "Determinística" que discutimos, usando o ID
+  const maxCount = isFinalEvolution.value
+      ? textureCounts.BGFinal.all
+      : (textureCounts.BGNormal[fileKey] || 1);
+
+  const randomIndex = (props.id % maxCount) + 1; // Usa o ID (props.id) aqui
+
   if (isFinalEvolution.value) {
     const baseFolder = 'BGFinal';
     const fileNamePrefix = 'BGf';
-    const maxCount = textureCounts[baseFolder]?.all || 1;
-    const randomIndex = getRandomNumber(1, maxCount);
     texturePath = `/BG/${baseFolder}/${fileNamePrefix}-${randomIndex}.png`;
 
   } else {
     const baseFolder = 'BGNormal';
     const fileNamePrefix = fileKey;
-    const maxCount = textureCounts[baseFolder]?.[fileKey] || 1;
-    const randomIndex = getRandomNumber(1, maxCount);
     texturePath = `/BG/${baseFolder}/${fileKey}/${fileNamePrefix}-${randomIndex}.png`;
   }
 
@@ -532,6 +603,13 @@ const pokemonBackgroundStyle = computed(() => {
       class="pokemon-card"
       :class="{ holo: props.rarity === 'holo' }"
       :style="{ '--type-color': bgColor }"
+
+      @mousedown="handlePressDown"
+      @mouseup="cancelPress"
+      @mouseleave="cancelPress"
+      @touchstart.prevent="handlePressDown"
+      @touchend="cancelPress"
+      @touchcancel="cancelPress"
   >
     <div class="card-inner">
       <div
@@ -625,6 +703,9 @@ const pokemonBackgroundStyle = computed(() => {
 </template>
 
 <style scoped>
+/* Seu CSS permanece exatamente o mesmo.
+  Nenhuma mudança de estilo foi necessária para o 'longpress'.
+*/
 
 :root {
   --size-symbol: 0.4rem;
