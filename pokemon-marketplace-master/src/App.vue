@@ -1,5 +1,31 @@
 <script setup lang="ts">
+import { ref, provide } from 'vue' // ✅ 1. Importe 'ref' e 'provide'
 import Sidebar from './components/Sidebar.vue'
+// ✅ 2. Importe o novo modal
+import PokemonDetailModal from './components/PokemonDetailModal.vue'
+
+// ✅ 3. Crie os 'refs' de estado global
+const isModalOpen = ref(false)
+const selectedPokemonId = ref<number | null>(null)
+const selectedPokemonRarity = ref<'normal' | 'holo' | undefined>(undefined);
+
+// ✅ 4. Crie as funções de controle
+function openModal(data: { id: number, rarity?: 'normal' | 'holo' }) {
+  selectedPokemonId.value = data.id
+  selectedPokemonRarity.value = data.rarity // Salva a raridade
+  isModalOpen.value = true
+}
+
+function closeModal() {
+  isModalOpen.value = false
+}
+
+// ✅ 5. "Forneça" (Provide) as funções para todos os filhos
+provide('modal-controls', {
+  openModal
+  // (Você pode adicionar 'closeModal' se precisar que um filho feche)
+})
+
 </script>
 
 <template>
@@ -20,6 +46,14 @@ import Sidebar from './components/Sidebar.vue'
       </div>
     </aside>
   </div>
+
+  <PokemonDetailModal
+      v-if="isModalOpen && selectedPokemonId"
+      :id="selectedPokemonId"
+      :rarity="selectedPokemonRarity"
+      @close="closeModal"
+  />
+
 </template>
 
 <style scoped>
