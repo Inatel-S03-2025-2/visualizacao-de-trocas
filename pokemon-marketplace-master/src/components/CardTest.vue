@@ -30,7 +30,7 @@ onMounted(() => {
 
       <div class="card-wrapper">
         <h3>Médio (250px)</h3>
-        <PokemonCard v-if="randomId" :id="randomId"  />
+        <PokemonCard v-if="randomId" :id="randomId" rarity="holo" />
       </div>
 
       <div class="card-wrapper">

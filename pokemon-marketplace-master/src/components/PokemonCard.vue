@@ -21,8 +21,10 @@ interface PokemonData {
   }
   types: Array<{
     type: {
-      name: string
-    }
+      name: string;
+      url: string; // <<< MUDANÇA: Adicionado 'url' aqui para tipagem
+    },
+    slot: number; // <<< MUDANÇA: Adicionado 'slot' aqui para tipagem
   }>
   stats: Array<{
     base_stat: number
@@ -96,6 +98,9 @@ const energySymbolMap: Record<string, string> = {
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
+// ... (Todas as suas funções de reescaleText, recalcularFontes, watch(pokemon), computed(paddingAjustado), etc. permanecem iguais)
+// ... (Pulando para fetchPokemon para mostrar as mudanças) ...
+
 // FUNÇÃO DE RESCALE TEXT
 function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel: string) {
   if (!containerElement) return
@@ -135,7 +140,7 @@ function recalcularFontes() {
 
     // ATUALIZA A REF fonteDetalhes APENAS AQUI!
     fonteDetalhes.value = novaFonte;
-    console.log('✅ [fonteDetalhes] Atualizado de forma estável para:', fonteDetalhes.value);
+    // console.log('✅ [fonteDetalhes] Atualizado de forma estável para:', fonteDetalhes.value);
 
     // Como o 'fonteDetalhes' mudou, o 'paddingAjustado' será executado automaticamente.
     // Não precisamos chamá-lo diretamente, mas sua execução definirá a variável CSS
@@ -151,7 +156,7 @@ watch(pokemon, async (novoPokemon) => {
     // Espera mais um ciclo para que o navegador recalcule o layout (essencial para largura final)
     await nextTick();
 
-    console.log('[watch pokemon] Executando recalcularFontes() FINAL');
+    // console.log('[watch pokemon] Executando recalcularFontes() FINAL');
     recalcularFontes();
   }
 }, { immediate: true });
@@ -159,15 +164,15 @@ watch(pokemon, async (novoPokemon) => {
 const paddingAjustado = computed(() => {
   if (!pokemonCard.value) return 0; // Proteção
 
-  console.log('📏 [paddingAjustado] fonteDetalhes atual:', fonteDetalhes.value);
+  // console.log('📏 [paddingAjustado] fonteDetalhes atual:', fonteDetalhes.value);
 
   // A condição foi ajustada para <= 10, conforme nossa discussão
-  if (fonteDetalhes.value !== null && fonteDetalhes.value <= 10) {
-    console.log('📦 Fonte muito pequena → ajustando padding com fator 0.004');
+  if (fonteDetalhes.value !== null && fonteDetalhes.value <= 9) {
+    // console.log('📦 Fonte muito pequena → ajustando padding com fator 0.004');
     // Define o padding na variável CSS e retorna o valor (px)
     return reescaleText(pokemonCard.value, 0.014, 'paddin-detalhes');
   } else {
-    console.log('📦 Fonte normal → resetando padding para 0');
+    // console.log('📦 Fonte normal → resetando padding para 0');
     // Define o padding como 0px na variável CSS e retorna 0
     return reescaleText(pokemonCard.value, 0, 'paddin-detalhes');
   }
@@ -190,6 +195,10 @@ const fetchPokemon = async (id: number) => {
   attackOne.value = null;
   attackTwo.value = null;
 
+  // <<< MUDANÇA 1: Limpando as URLs antigas
+  weaknessSymbolUrl.value = '';
+  resistanceSymbolUrl.value = '';
+
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
     if (!res.ok) {
@@ -200,10 +209,8 @@ const fetchPokemon = async (id: number) => {
     height.value = data.height / 10;
     weight.value = data.weight / 10;
 
-    // ✅ BUG CORRIGIDO AQUI: Lógica de atribuição estava faltando
-    const uniqueEnergyUrls = [...new Set(Object.values(energySymbolMap))];
-    weaknessSymbolUrl.value = uniqueEnergyUrls[getRandomNumber(0, uniqueEnergyUrls.length - 1)];
-    resistanceSymbolUrl.value = uniqueEnergyUrls[getRandomNumber(0, uniqueEnergyUrls.length - 1)];
+    // <<< MUDANÇA 2: REMOVIDA a lógica aleatória de fraqueza/resistência daqui.
+    // Mantemos apenas o custo de recuo aleatório.
     retreatCostCount.value = getRandomNumber(1, 3);
 
   } catch (e: any) {
@@ -213,6 +220,43 @@ const fetchPokemon = async (id: number) => {
     loading.value = false
   }
 }
+
+// <<< MUDANÇA 3: Nova função para buscar Fraqueza/Resistência
+const fetchDamageRelations = async (pokemonData: PokemonData) => {
+  // Define fallbacks caso a busca falhe
+  const fallbackSymbol = energySymbolMap['normal'];
+  weaknessSymbolUrl.value = fallbackSymbol;
+  resistanceSymbolUrl.value = fallbackSymbol;
+
+  try {
+    // 1. Encontra o tipo primário (slot 1)
+    const primaryType = pokemonData.types.find(t => t.slot === 1) || pokemonData.types[0];
+    if (!primaryType) return;
+
+    // 2. Busca os detalhes desse tipo
+    const typeRes = await fetch(primaryType.type.url);
+    if (!typeRes.ok) throw new Error("Type details not found.");
+    const typeData = await typeRes.json();
+
+    const relations = typeData.damage_relations;
+
+    // 3. Extrai o NOME do primeiro tipo de fraqueza
+    const weaknessType = relations.double_damage_from[0]?.name || null;
+
+    // 4. Extrai o NOME da primeira resistência (0.5x) ou imunidade (0x)
+    const resistanceType = relations.half_damage_from[0]?.name || relations.no_damage_from[0]?.name || null;
+
+    // 5. Mapeia os NOMES para as URLs dos símbolos
+    // Se o tipo (ex: Dragon) não tiver resistência, resistanceType será null, e usamos o fallback 'normal'.
+    weaknessSymbolUrl.value = weaknessType ? energySymbolMap[weaknessType] : fallbackSymbol;
+    resistanceSymbolUrl.value = resistanceType ? energySymbolMap[resistanceType] : fallbackSymbol;
+
+  } catch (e: any) {
+    console.error('Erro ao buscar relações de dano:', e);
+    // Ações de fallback já foram definidas no início da função
+  }
+};
+
 
 // Busca a cadeia de evolução e checa se é o estágio final
 const fetchEvolutionChain = async (speciesUrl: string) => {
@@ -255,6 +299,9 @@ watch(pokemon, (newPokemon) => {
     const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
     fetchEvolutionChain(speciesUrl);
     processAttackData(newPokemon);
+
+    // <<< MUDANÇA 4: Chamando a nova função aqui
+    fetchDamageRelations(newPokemon);
   }
 });
 
@@ -268,6 +315,9 @@ onMounted(() => {
   recalcularFontes()
   window.addEventListener('resize', recalcularFontes)
 })
+
+// ... (Restante do seu script, typeColors, computed properties, etc., permanece o mesmo) ...
+// ... (O script restante é idêntico ao seu original) ...
 
 // Mapeamento das Cores por tipo (TABELA DE COR)
 const typeColors: Record<string, string> = {
@@ -472,7 +522,6 @@ const pokemonBackgroundStyle = computed(() => {
   <div v-if="loading" class="loading-card">
     <span>Loading...</span>
   </div>
-
   <div v-else-if="error" class="error-card">
     <span>Erro: {{ error }}</span>
   </div>
@@ -568,6 +617,8 @@ const pokemonBackgroundStyle = computed(() => {
           <span>Ilustru: Henry.blh 2025 26 27 Nentendo,Creatures, GAMEFREAK  25/453</span>
         </div>
 
+        <div class="holo-overlay"></div>
+
       </div>
     </div>
   </div>
@@ -660,6 +711,8 @@ const pokemonBackgroundStyle = computed(() => {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  position: relative;
+  overflow: hidden;
 }
 
 .hp {
@@ -691,9 +744,10 @@ const pokemonBackgroundStyle = computed(() => {
 .stats-bar {
   background-color: #fbc74a;
   text-align: center;
-  padding: var(--padding-detalhes);
+  padding:  0 var(--padding-detalhes) 0;
   margin: var(--margin-image) var(--margin-image);
   font-weight: 650;
+  font-size: var(--fonte-detalhes);
   font-size: var(--fonte-detalhes);
   color: #1b1b1b;
   font-family: 'Segoe UI', sans-serif;
@@ -825,33 +879,34 @@ const pokemonBackgroundStyle = computed(() => {
   font-size: calc(var(--fonte-detalhes) * 0.8);
 }
 
-.holo::before {
-  content: "";
+.holo-overlay {
+  display: none;
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-      125deg,
-      rgba(255, 255, 255, 0.2),
-      rgba(0, 255, 255, 0.2),
-      rgba(255, 0, 255, 0.2),
-      rgba(255, 255, 255, 0.2)
-  );
-  background-size: 400% 400%;
-  mix-blend-mode: overlay;
-  animation: holo-shine 6s linear infinite;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background-image: url('/Holoyoverlay.png');
+  background-size: cover;
   pointer-events: none;
-  border-radius: 1.2rem;
+  background-repeat: repeat;
 }
 
-@keyframes holo-shine {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+.pokemon-card.holo .holo-overlay {
+  display: block;
+  opacity: 0.6;
+  animation: holo-shift 10s linear infinite alternate;
+
+}
+
+@keyframes holo-fade-in {
+  from { opacity: 0; }
+  to { opacity: 0.3; } /* Ou o valor que você definir acima */
+}
+
+@keyframes holo-shift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; } /* Move a imagem diagonalmente */
 }
 </style>
