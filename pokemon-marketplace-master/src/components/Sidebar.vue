@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import PokemonCard from './PokemonCard.vue'
+import { ref } from 'vue'
+// REMOVIDO: onMounted e PokemonCard
 
 // Usuário atual
 const currentUser = ref({
@@ -10,18 +10,13 @@ const currentUser = ref({
 
 // Itens do menu
 const menuItems = ref([
-  { icon: 'home', label: 'Home', active: true, to: '/' },
-  { icon: 'plus', label: 'Add Trade', active: false, to: '/add-trade' },
-  { icon: 'cards', label: 'My Cards', active: false, to: '/my-cards' },
-  { icon: 'heart', label: 'Favorites', active: false, to: '/wishlist' }
+  { icon: 'home', label: 'Home', to: '/trades' },
+  { icon: 'plus', label: 'Add Trade', to: '/add-trade' },
+  { icon: 'heart', label: 'Favorites', to: '/wishlist' },
+  { icon: 'cards', label: 'Card Test', to: '/card-test' }
 ])
 
-// ID aleatório de Pokémon (1–151)
-const randomId = ref<number | null>(null)
-
-onMounted(() => {
-  randomId.value = Math.floor(Math.random() * 151) + 1
-})
+// REMOVIDO: A lógica do randomId e onMounted
 </script>
 
 <template>
@@ -38,9 +33,11 @@ onMounted(() => {
           v-for="item in menuItems"
           :key="item.label"
           :to="item.to"
-          :class="['menu-item', { active: item.active }]"
+          class="menu-item"
+          active-class="active"
       >
         <span class="menu-icon">
+          <!-- (Seus ícones SVG permanecem aqui) -->
           <template v-if="item.icon === 'home'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -68,16 +65,16 @@ onMounted(() => {
       </router-link>
     </nav>
 
-    <!-- Carta Pokémon aleatória -->
-    <div v-if="randomId" class="random-pokemon">
-      <PokemonCard :id="randomId" />
-    </div>
+    <!-- REMOVIDO: O <div> para o card aleatório -->
+
   </aside>
 </template>
 
 <style scoped>
+/* ESTILOS DE BASE (DESKTOP) */
 .sidebar {
   width: 280px;
+  height: 100vh;
   background-color: #fff;
   border-right: 1px solid #e0e0e0;
   padding: 24px 16px;
@@ -85,6 +82,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 32px;
+  transition: width 0.3s ease, height 0.3s ease;
 }
 
 .user-profile {
@@ -142,20 +140,35 @@ onMounted(() => {
   color: #fff;
 }
 
-.menu-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* REMOVIDO: Estilos .random-pokemon */
 
-.random-pokemon {
-  margin-top: auto;
-  display: flex;
-  justify-content: center;
-  padding-top: 16px;
-  border-top: 1px solid #eee;
+
+/* ESTILOS RESPONSIVOS (MOBILE) */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 8px 16px;
+    gap: 16px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .menu {
+    flex-direction: row;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .menu-item {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Esconde o perfil (e o card que não existe mais) */
+  .user-profile {
+    display: none;
+  }
 }
 </style>
-
-
-

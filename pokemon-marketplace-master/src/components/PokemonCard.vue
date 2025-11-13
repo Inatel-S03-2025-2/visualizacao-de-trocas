@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue';
 
-// Define a interface para as props
 interface Props {
   id: number
   rarity?: 'normal' | 'holo'
 }
 
 const props = defineProps<Props>()
-
-// Tipagem simplificada para os dados que realmente usamos
 interface PokemonData {
   name: string
   sprites: {
@@ -17,7 +14,7 @@ interface PokemonData {
       'official-artwork': {
         front_default: string
       },
-      dream_world?: { // Adicionado '?' pois pode não existir
+      dream_world?: {
         front_default: string
       }
     }
@@ -33,6 +30,18 @@ interface PokemonData {
       name: string
     }
   }>
+  moves: Array<{
+    move: {
+      name: string;
+      url: string;
+    }
+  }>;
+  abilities: Array<{
+    ability: {
+      name: string;
+      url: string;
+    }
+  }>;
 }
 
 const pokemon = ref<PokemonData | null>(null)
@@ -40,12 +49,25 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const evolutionChain = ref<any>(null);
 const isFinalEvolution = ref(false);
-
 const height = ref(0);
 const weight = ref(0);
 const genus = ref('');
+const weaknessSymbolUrl = ref('');
+const resistanceSymbolUrl = ref('');
+const retreatCostCount = ref(1);
 
-// Mapeamento de Tipo para Símbolo de Energia TCG
+interface AttackSlot {
+  name: string;
+  type: string;
+}
+const attackOne = ref<AttackSlot | null>(null);
+const attackTwo = ref<AttackSlot | null>(null);
+
+const colorlessSymbolUrl = computed(() => energySymbolMap['normal']);
+
+const pokemonCard = ref<HTMLElement | null>(null)
+const fonteDetalhes = ref<number | null>(null);
+
 const energySymbolMap: Record<string, string> = {
   'water': 'https://i.imgur.com/uGgzRK6.png',
   'fire': 'https://i.imgur.com/6Dus51N.png',
@@ -63,18 +85,110 @@ const energySymbolMap: Record<string, string> = {
   'ground': 'https://i.imgur.com/8gUKcVr.png',
   'rock': 'https://i.imgur.com/8gUKcVr.png',
   'ice': 'https://i.imgur.com/hXZrrgo.png',
-  'fairy': 'https://www.deviantart.com/biochao/art/Fairy-Energy-card-vector-symbol-906615563', // Este link pode não funcionar como <img>
+  'fairy': 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/0726fbdd-a6a6-4871' +
+      '-bed6-e8e0b9ce2af0/d6jtiuy-f4dc7bea-beb7-417b-ba85-736ae9f5c030.png?token=eyJ0eXA' +
+      'iOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQ' +
+      'xNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIs' +
+      'Im9iaiI6W1t7InBhdGgiOiIvZi8wNzI2ZmJkZC1hNmE2LTQ4NzEtYmVkNi1lOGUwYjljZTJhZjAvZDZqd' +
+      'Gl1eS1mNGRjN2JlYS1iZWI3LTQxN2ItYmE4NS03MzZhZTlmNWMwMzAucG5nIn1dXSwiYXVkIjpbInVybj' +
+      'pzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.-KQR9aFKGB-XMw-8v1BIiZj2c0z6tCFCBSd1nmltnqA',
   'flying': 'https://i.imgur.com/frwYIiG.png',
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
+// FUNÇÃO DE RESCALE TEXT
+function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel: string) {
+  if (!containerElement) return
 
-// Função para buscar dados da PokéAPI
+  const largura = containerElement.offsetWidth
+  const valor = +(largura * fator).toFixed(3)
+
+  containerElement.style.setProperty(`--${nomeVariavel}`, `${valor}px`)
+
+  return valor;
+}
+
+
+function recalcularFontes() {
+  if (pokemonCard.value) {
+    const el = pokemonCard.value;
+
+    // --- Medições Múltiplas ---
+    reescaleText(el, 0.0133, "borda-carta");
+    reescaleText(el, 0.0712, "size-symbol");
+    reescaleText(el, 0.0680, "hp-texto");
+    reescaleText(el, 0.01778, "hp-dist");
+    reescaleText(el, 0.0533, "bordas");
+    reescaleText(el, 0.03, "padding-inner");
+    reescaleText(el, 0.015, "borda-imagem");
+    reescaleText(el, 0.015, "margin-image");
+    reescaleText(el, 0.6, "altura-image");
+    reescaleText(el, 0.05, "peso-linha");
+    reescaleText(el, 0.11, "padding-atk");
+    reescaleText(el, 0.065, "size-symbol2");
+    reescaleText(el, 0.030, "pp06");
+    reescaleText(el, 0.007, "pp02");
+
+
+    // --- Medição Crítica 'fonte-detalhes' (Onde a lógica do padding depende) ---
+    const novaFonte = reescaleText(el, 0.03, "fonte-detalhes");
+
+    // ATUALIZA A REF fonteDetalhes APENAS AQUI!
+    fonteDetalhes.value = novaFonte;
+    console.log('✅ [fonteDetalhes] Atualizado de forma estável para:', fonteDetalhes.value);
+
+    // Como o 'fonteDetalhes' mudou, o 'paddingAjustado' será executado automaticamente.
+    // Não precisamos chamá-lo diretamente, mas sua execução definirá a variável CSS
+    // '--paddin-detalhes' através do 'reescaleText' dentro do computed.
+  }
+}
+
+watch(pokemon, async (novoPokemon) => {
+  if (novoPokemon) {
+    // Garante que a primeira renderização do novo Pokémon terminou
+    await nextTick();
+
+    // Espera mais um ciclo para que o navegador recalcule o layout (essencial para largura final)
+    await nextTick();
+
+    console.log('[watch pokemon] Executando recalcularFontes() FINAL');
+    recalcularFontes();
+  }
+}, { immediate: true });
+
+const paddingAjustado = computed(() => {
+  if (!pokemonCard.value) return 0; // Proteção
+
+  console.log('📏 [paddingAjustado] fonteDetalhes atual:', fonteDetalhes.value);
+
+  // A condição foi ajustada para <= 10, conforme nossa discussão
+  if (fonteDetalhes.value !== null && fonteDetalhes.value <= 10) {
+    console.log('📦 Fonte muito pequena → ajustando padding com fator 0.004');
+    // Define o padding na variável CSS e retorna o valor (px)
+    return reescaleText(pokemonCard.value, 0.014, 'paddin-detalhes');
+  } else {
+    console.log('📦 Fonte normal → resetando padding para 0');
+    // Define o padding como 0px na variável CSS e retorna 0
+    return reescaleText(pokemonCard.value, 0, 'paddin-detalhes');
+  }
+});
+
+watch(paddingAjustado, (padding) => {
+  if (pokemonCard.value) {
+    // Isso garante que a variável CSS está definida pelo computed.
+    // O reescaleText no computed já faz isso, mas podemos ser explícitos:
+    pokemonCard.value.style.setProperty('--padding-detalhes', `${padding}px`);
+  }
+});
+
+
 const fetchPokemon = async (id: number) => {
   loading.value = true
   error.value = null
   pokemon.value = null
-  isFinalEvolution.value = false; // Reseta o estado
+  isFinalEvolution.value = false;
+  attackOne.value = null;
+  attackTwo.value = null;
 
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
@@ -85,6 +199,13 @@ const fetchPokemon = async (id: number) => {
     pokemon.value = data
     height.value = data.height / 10;
     weight.value = data.weight / 10;
+
+    // ✅ BUG CORRIGIDO AQUI: Lógica de atribuição estava faltando
+    const uniqueEnergyUrls = [...new Set(Object.values(energySymbolMap))];
+    weaknessSymbolUrl.value = uniqueEnergyUrls[getRandomNumber(0, uniqueEnergyUrls.length - 1)];
+    resistanceSymbolUrl.value = uniqueEnergyUrls[getRandomNumber(0, uniqueEnergyUrls.length - 1)];
+    retreatCostCount.value = getRandomNumber(1, 3);
+
   } catch (e: any) {
     console.error('Erro ao carregar Pokémon:', e)
     error.value = e.message || 'Erro ao buscar dados do Pokémon.'
@@ -109,7 +230,6 @@ const fetchEvolutionChain = async (speciesUrl: string) => {
     const englishGenus = speciesData.genera.find((g: any) => g.language.name === 'en');
     genus.value = englishGenus ? englishGenus.genus : 'Unknown Pokémon';
 
-    // Função recursiva para encontrar o pokemon e checar o "evolves_to"
     const findEvolution = (chain: any) => {
       if (chain.species.name === pokemon.value?.name) {
         return chain.evolves_to.length === 0;
@@ -125,7 +245,7 @@ const fetchEvolutionChain = async (speciesUrl: string) => {
 
   } catch (e: any) {
     console.error('Erro ao buscar cadeia de evolução:', e);
-    isFinalEvolution.value = false; // Garante que seja false em caso de erro
+    isFinalEvolution.value = false;
   }
 }
 
@@ -134,15 +254,19 @@ watch(pokemon, (newPokemon) => {
   if (newPokemon) {
     const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
     fetchEvolutionChain(speciesUrl);
+    processAttackData(newPokemon);
   }
 });
-
 
 // Busca inicial ao montar
 onMounted(() => {
   if (props.id) {
     fetchPokemon(props.id)
   }
+
+  // Inicializa o resize observer
+  recalcularFontes()
+  window.addEventListener('resize', recalcularFontes)
 })
 
 // Mapeamento das Cores por tipo (TABELA DE COR)
@@ -177,9 +301,18 @@ const primaryType = computed(() => pokemon.value?.types?.[0]?.type?.name || 'nor
 
 const bgColor = computed(() => typeColors[primaryType.value] || '#CCC')
 
-// ✅ PROPRIEDADE COMPUTADA ADICIONADA
 const energySymbolUrl = computed(() => {
   return energySymbolMap[primaryType.value] || energySymbolMap['unknown'];
+});
+
+const attackOneEnergyUrl = computed(() => {
+  const type = attackOne.value?.type || 'normal';
+  return energySymbolMap[type] || energySymbolMap['unknown'];
+});
+
+const attackTwoEnergyUrl = computed(() => {
+  const type = attackTwo.value?.type || 'normal';
+  return energySymbolMap[type] || energySymbolMap['unknown'];
 });
 
 // Função auxiliar para encontrar estatísticas por nome
@@ -197,6 +330,70 @@ const getRandomNumber = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// FUNÇÃO ATUALIZADA (sem description)
+const getMoveDetails = async (moveUrl: string): Promise<{ type: string }> => {
+  try {
+    const res = await fetch(moveUrl);
+    if (!res.ok) throw new Error("Move not found");
+    const moveData = await res.json();
+    const type = moveData.type.name || 'normal';
+    return { type };
+  } catch (e) {
+    console.error("Failed to fetch move details:", e);
+    return { type: 'normal' };
+  }
+};
+
+// FUNÇÃO ATUALIZADA (sem description)
+const getAbilityDetails = async (): Promise<{ type: string }> => {
+  const type = primaryType.value;
+  return { type };
+}
+
+// FUNÇÃO ATUALIZADA (sem description)
+const processAttackData = async (pokemonData: PokemonData) => {
+  attackOne.value = null;
+  attackTwo.value = null;
+
+  const moves = pokemonData.moves;
+  const abilities = pokemonData.abilities;
+
+  // Lógica do Ataque 1
+  if (moves.length > 0) {
+    const move1 = moves[0].move;
+    const details = await getMoveDetails(move1.url);
+    attackOne.value = {
+      name: move1.name,
+      type: details.type,
+    };
+  } else if (abilities.length > 0) {
+    const ability1 = abilities[0].ability;
+    const details = await getAbilityDetails();
+    attackOne.value = {
+      name: ability1.name,
+      type: details.type,
+    };
+  } else {
+    attackOne.value = { name: 'Struggle', type: 'normal' };
+  }
+
+  // Lógica do Ataque 2
+  if (moves.length > 1) {
+    const move2 = moves[1].move;
+    attackTwo.value = {
+      name: move2.name,
+      type: primaryType.value,
+    };
+  } else if (abilities.length > 0) {
+    const abilityToUse = abilities[0].ability;
+    attackTwo.value = {
+      name: abilityToUse.name,
+      type: primaryType.value,
+    };
+  } else {
+    attackTwo.value = { name: 'Rest', type: 'normal' };
+  }
+};
 
 // Mapeamento de Tipo para Textura do CARD (FUNDO PRINCIPAL)
 const cardTextureMap: Record<string, string> = {
@@ -221,7 +418,6 @@ const pokemonTextureMap: Record<string, string> = {
   'unknown': 'normal',
 };
 
-
 // MOCK: Contagem de Arquivos por Pasta/Tipo
 const textureCounts: Record<string, Record<string, number>> = {
   BGNormal: {
@@ -236,18 +432,15 @@ const textureCounts: Record<string, Record<string, number>> = {
   }
 };
 
-
 // PROPRIEDADE 1: Fundo da CARTA (Simples, BGCard)
 const cardBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
   const fileKey = cardTextureMap[typeName] || 'normal';
 
-  // Lembre-se de verificar a extensão do BGCard (ex: .jpg)
   const texturePath = `/BG/BGCard/${fileKey}-texture.jpg`;
 
   return `url('${texturePath}')`;
 });
-
 
 // PROPRIEDADE 2: Fundo do POKÉMON
 const pokemonBackgroundStyle = computed(() => {
@@ -257,25 +450,17 @@ const pokemonBackgroundStyle = computed(() => {
   let texturePath = '';
 
   if (isFinalEvolution.value) {
-    // Lógica para BGFinal (ex: BGf-1.png)
     const baseFolder = 'BGFinal';
     const fileNamePrefix = 'BGf';
-
     const maxCount = textureCounts[baseFolder]?.all || 1;
     const randomIndex = getRandomNumber(1, maxCount);
-
-    // Lembre-se de verificar a extensão do BGFinal (ex: .png)
     texturePath = `/BG/${baseFolder}/${fileNamePrefix}-${randomIndex}.png`;
 
   } else {
-    // Lógica para BGNormal (ex: water-1.png)
     const baseFolder = 'BGNormal';
     const fileNamePrefix = fileKey;
-
     const maxCount = textureCounts[baseFolder]?.[fileKey] || 1;
     const randomIndex = getRandomNumber(1, maxCount);
-
-    // Lembre-se de verificar a extensão do BGNormal (ex: .png)
     texturePath = `/BG/${baseFolder}/${fileKey}/${fileNamePrefix}-${randomIndex}.png`;
   }
 
@@ -294,6 +479,7 @@ const pokemonBackgroundStyle = computed(() => {
 
   <div
       v-else-if="pokemon"
+      ref="pokemonCard"
       class="pokemon-card"
       :class="{ holo: props.rarity === 'holo' }"
       :style="{ '--type-color': bgColor }"
@@ -323,71 +509,115 @@ const pokemonBackgroundStyle = computed(() => {
           <span><b>{{ genus }}</b>. Length: {{ height }} m, Weight: {{ weight }} kg.</span>
         </div>
 
-        <div class="info">
-          <span class="type-tag">{{ primaryType.toUpperCase() }}</span>
+        <div class="attacks" v-if="attackOne && attackTwo">
+
+          <div class="attack-slot">
+            <div class="attack-header">
+              <div class="attack-cost">
+                <img :src="attackOneEnergyUrl" :alt="attackOne.type" class="energy-symbol-small" />
+              </div>
+              <span class="attack-name-new">{{ attackOne.name }}</span>
+              <span class="attack-power-new">{{ attack }}</span>
+            </div>
+          </div>
+
+          <div class="attack-slot">
+            <div class="attack-header">
+              <div class="attack-cost">
+                <img :src="attackTwoEnergyUrl" :alt="attackTwo.type" class="energy-symbol-small" />
+                <img :src="attackTwoEnergyUrl" :alt="attackTwo.type" class="energy-symbol-small" />
+              </div>
+              <span class="attack-name-new">{{ attackTwo.name }}</span>
+              <span class="attack-power-new">{{ spAttack }}</span>
+            </div>
+          </div>
+
         </div>
 
-        <div class="debug-evolution">
-          Evolução Final: <b>{{ isFinalEvolution }}</b>
+        <div class="card-footer">
+
+          <div class="footer-section">
+            <label>Fraqueza</label>
+            <img :src="weaknessSymbolUrl" alt="Weakness" class="footer-symbol" />
+          </div>
+
+          <div class="footer-section">
+            <label>Resistência</label>
+            <img :src="resistanceSymbolUrl" alt="Resistance" class="footer-symbol" />
+          </div>
+
+          <div class="footer-section">
+            <label>Custo de Recuo</label>
+            <div class="retreat-cost-symbols">
+              <img
+                  v-for="n in retreatCostCount"
+                  :key="n"
+                  :src="colorlessSymbolUrl"
+                  alt="Retreat Cost"
+                  class="footer-symbol"
+              />
+            </div>
+          </div>
+
+        </div>
+        <div class="card-description-box">
+          Este card é uma representação colecionável de um Pokémon, ideal para batalhas estratégicas.
         </div>
 
-        <div class="attacks">
-          <div class="attack">
-            <span class="attack-name">Attack</span>
-            <span class="attack-power">{{ attack }}</span>
-          </div>
-          <div class="attack">
-            <span class="attack-name">Sp. Attack</span>
-            <span class="attack-power">{{ spAttack }}</span>
-          </div>
+        <div class="card-legal-info">
+          <span>Ilustru: Henry.blh 2025 26 27 Nentendo,Creatures, GAMEFREAK  25/453</span>
         </div>
+
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.error-card {
-  width: 250px;
-  aspect-ratio: 63 / 88;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align: center;
-  background-color: #ffebeb;
-  border: 2px solid #ff4444;
-  border-radius: 12px;
-  color: #ff4444;
-  font-family: monospace;
-  padding: 16px;
-  text-align: center;
+
+:root {
+  --size-symbol: 0.4rem;
+  --borda-carta: 6px;
+  --hp-texto: 29px;
+  --hp-dist: 8px;
+  --bordas: 0.5rem;
+  --padding-inner: 0.8rem;
+  --borda-imagem: 0.4rem;
+  --margin-image: 0.5rem;
+  --altura-image: 13.5rem;
+  --peso-linha: 1.3rem;
+  --fonte-detalhes: 13px;
+  --padding-detalhes: 0.1rem;
+  --padding-atk: 3rem;
+  --size-symbol2: 1.8rem;
+  --pp06: 0.6rem;
+  --pp02: 0.2rem;
+
 }
 
 .pokemon-card {
   position: relative;
   aspect-ratio: 63 / 88;
-  width: 250px;
-  border: 4px solid #ffd605;
+  border: var(--borda-carta) solid #ffd605;
   background-color: #ffcc00;
-  border-radius: 12px;
+  border-radius: var(--bordas);
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.25);
   font-family: 'Segoe UI', sans-serif;
   transition: transform 0.2s ease;
 }
 
 .pokemon-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-0.4rem);
 }
 
 .card-inner {
-  width: calc(100% - 16px);
-  height: calc(100% - 16px);
+  width: 95%;
+  height: 97%;
   background-color: transparent;
-  border-radius: 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -397,26 +627,28 @@ const pokemonBackgroundStyle = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1.2rem;
   font-weight: bold;
-  color: #333;
-  margin-bottom: 1px;
 }
 
-/* ✅ NOVOS ESTILOS CSS ADICIONADOS */
+.card-header .name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--hp-texto);
+  color: #000000;
+}
+
 .header-right {
   display: flex;
   align-items: center;
-  gap: 5px; /* Espaço entre o HP e o símbolo */
+  gap: var(--hp-dist);
 }
 
 .energy-symbol {
-  width: 20px;
-  height: 20px;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
-  flex-shrink: 0;
+  width: var(--size-symbol);
+  height: var(--size-symbol);
+  filter: drop-shadow(0 0.1rem 0.1rem rgba(0,0,0,0.3));
 }
-/* FIM DOS NOVOS ESTILOS */
 
 .content-area {
   width: 100%;
@@ -424,94 +656,173 @@ const pokemonBackgroundStyle = computed(() => {
   background-size: cover;
   background-repeat: no-repeat;
   background-color: transparent;
-  border-radius: 6px;
-  padding: 8px;
+  padding: var(--pp06) var(--padding-inner) 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .hp {
   color: #d62828;
-  font-size: 1.1rem;
+  font-size: var(--hp-texto);
   white-space: nowrap;
 }
 
 .image-container {
-  border: 4px solid #f3cb49;
-  border-radius: 1px;
+  border: var(--borda-imagem) solid #f3cb49;
+  border-radius: 0.1rem;
   background-size: cover;
   background-repeat: no-repeat;
   background-color: transparent;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 120px;
-  margin: 6px 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+  height: var(--altura-image);
+  margin: var(--margin-image) 0;
+  box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.7);
 }
 
 .image-container img {
-  max-width: 80%;
-  max-height: 80%;
+  max-width: 90%;
+  max-height: 90%;
   object-fit: contain;
 }
 
 .stats-bar {
-  background-color: #efd05b;
-  border: 1px solid #DAA520;
-  border-radius: 4px;
-  text-align: left;
-  padding: 3px 6px 1px;
-  margin: px;
-  font-weight: bold;
-  font-size: 8px;
-  color: #000000;
+  background-color: #fbc74a;
+  text-align: center;
+  padding: var(--padding-detalhes);
+  margin: var(--margin-image) var(--margin-image);
+  font-weight: 650;
+  font-size: var(--fonte-detalhes);
+  color: #1b1b1b;
   font-family: 'Segoe UI', sans-serif;
-  box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
+  box-shadow: inset 0 0 0.3rem rgba(44, 25, 25, 0.1);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: var(--peso-linha);
 }
 
 .stats-bar b {
-  color: #333;
-  font-weight: 700;
-}
-
-.info {
-  text-align: center;
-  font-size: 12px;
-  color: #444;
-  margin-bottom: 6px;
-}
-
-.debug-evolution {
-  background-color: rgba(0, 0, 0, 0.75);
-  color: #fff;
-  font-size: 11px;
-  text-align: center;
-  padding: 3px 0;
-  font-family: monospace;
-  margin-bottom: 6px;
-  border-radius: 4px;
+  color: #1b1b1b;
+  font-weight: 650;
 }
 
 .attacks {
-  border-top: 1px solid #ffcc00;
-  padding-top: 4px;
+  padding-top: var(--margin-image);
+  display: flex;
+  flex-direction: column;
+  gap: var(--margin-image);
+  flex: 1;
 }
 
-.attack {
+.attack-slot {
+  border-top: 0.1rem solid #000000;
+  padding-top: var(--margin-image);
+  position: relative;
+}
+
+.attack-slot:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.attack-header {
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  padding: 2px 0;
+  align-items: center;
+  gap: var(--padding-inner);
+  justify-content: center;
+  padding: 0 var(--padding-atk);
+}
+
+.attack-cost {
+  display: flex;
+  gap: var(--borda-imagem);
+  flex-shrink: 0;
+  position: absolute;
+  left: var(--borda-imagem);
+}
+
+.energy-symbol-small {
+  width: var(--size-symbol2);
+  height: var(--size-symbol2);
+}
+
+.attack-name-new {
+  font-size: var(--bordas );
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+}
+
+.attack-power-new {
+  font-size: var(--bordas );
+  font-weight: bold;
+  color: #333;
+  flex-shrink: 0;
+  position: absolute;
+  right: var(--borda-imagem);
+}
+
+.card-footer {
+  border-top: 0.1rem solid #000000;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  margin-top: var(--pp06)
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pp02);
+}
+
+.footer-section label {
+  font-size: var(--padding-inner);
+  font-weight: 700;
   color: #333;
 }
 
-.attack + .attack {
-  border-top: 1px dashed #ffcc00;
+.footer-symbol {
+  width: var(--size-symbol2);
+  height: var(--size-symbol2);
+}
+
+.retreat-cost-symbols {
+  display: flex;
+  gap: var(--borda-imagem);
+  min-height: var(--size-symbol2);
+}
+
+.card-description-box {
+  background-color: transparent;
+  border: 0.1rem solid #DAA520;
+  padding: 0.1rem var(--pp06);
+  margin-top: var(--margin-image);
+  font-size: var(--fonte-detalhes);
+  font-weight: 650;
+  color: #333;
+  text-align: center;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.card-legal-info {
+  background-color: transparent;
+  padding: 0 var(--pp06) var(--pp02);
+  margin-top: var(--pp02);
+  font-weight: 600;
+  color: #000000;
+  text-align: center;
+  line-height: 1;
+  opacity: 0.8;
+  flex-shrink: 0;
+  font-size: calc(var(--fonte-detalhes) * 0.8);
 }
 
 .holo::before {
@@ -529,7 +840,7 @@ const pokemonBackgroundStyle = computed(() => {
   mix-blend-mode: overlay;
   animation: holo-shine 6s linear infinite;
   pointer-events: none;
-  border-radius: 12px;
+  border-radius: 1.2rem;
 }
 
 @keyframes holo-shine {
@@ -542,15 +853,5 @@ const pokemonBackgroundStyle = computed(() => {
   100% {
     background-position: 0% 50%;
   }
-}
-
-.loading-card {
-  width: 250px;
-  aspect-ratio: 63 / 88;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #888;
-  font-family: monospace;
 }
 </style>
