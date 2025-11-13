@@ -1,19 +1,47 @@
 // src/router/index.js
 
 import { createRouter, createWebHistory } from 'vue-router';
-import WishlistPage from '../components/WishlistPage.vue'; // Ajuste o caminho conforme o seu projeto
+import WishlistPage from '../components/WishlistPage.vue';
+import CardTest from '../components/CardTest.vue';
+// ✅ IMPORTA A PÁGINA PRINCIPAL
+import TradesListPage from '../components/TradesListPage.vue';
+
+// Componentes "dummy" temporários
+const AddTradePage = { template: '<h1>Página Add Trade (Em construção)</h1>' };
+const MyCardsPage = { template: '<h1>Página My Cards (Em construção)</h1>' };
 
 const routes = [
+    // ✅ ADICIONADO: Redireciona a raiz '/' para '/trades'
     {
         path: '/',
-        name: 'Home',
-        component: { template: '<div></div>' } // Componente VAZIO, pois o App.vue já tem o conteúdo principal.
+        redirect: '/trades' // Qualquer acesso à raiz é jogado para /trades
+    },
+    // ✅ ALTERADO: A página principal agora vive em '/trades'
+    {
+        path: '/trades',
+        name: 'Home', // O nome da rota ainda pode ser 'Home'
+        component: TradesListPage
     },
     {
         path: '/wishlist',
         name: 'Wishlist',
-        component: WishlistPage // Este é o componente que será injetado no <router-view v-else />
+        component: WishlistPage
     },
+    {
+        path: '/card-test',
+        name: 'CardTest',
+        component: CardTest
+    },
+    {
+        path: '/add-trade',
+        name: 'AddTrade',
+        component: AddTradePage
+    },
+    {
+        path: '/my-cards',
+        name: 'MyCards',
+        component: MyCardsPage
+    }
 ];
 
 const router = createRouter({

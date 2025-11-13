@@ -1,35 +1,43 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+// REMOVIDO: onMounted e PokemonCard
 
+// Usuário atual
 const currentUser = ref({
   username: 'USERNAME',
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CurrentUser'
 })
 
-// Adicionamos as rotas
+// Itens do menu
 const menuItems = ref([
-  { icon: 'home', label: 'Home', active: true, to: '/' },
-  { icon: 'plus', label: 'Add Trade', active: false, to: '/add-trade' },
-  { icon: 'cards', label: 'My Cards', active: false, to: '/my-cards' },
-  { icon: 'heart', label: 'Favorites', active: false, to: '/wishlist' }
+  { icon: 'home', label: 'Home', to: '/trades' },
+  { icon: 'plus', label: 'Add Trade', to: '/add-trade' },
+  { icon: 'heart', label: 'Favorites', to: '/wishlist' },
+  { icon: 'cards', label: 'Card Test', to: '/card-test' }
 ])
+
+// REMOVIDO: A lógica do randomId e onMounted
 </script>
 
 <template>
   <aside class="sidebar">
+    <!-- Perfil do usuário -->
     <div class="user-profile">
       <img :src="currentUser.avatar" :alt="currentUser.username" class="avatar" />
       <span class="username">{{ currentUser.username }}</span>
     </div>
 
+    <!-- Menu lateral -->
     <nav class="menu">
       <router-link
           v-for="item in menuItems"
           :key="item.label"
           :to="item.to"
-          :class="['menu-item', { active: item.active }]"
+          class="menu-item"
+          active-class="active"
       >
         <span class="menu-icon">
+          <!-- (Seus ícones SVG permanecem aqui) -->
           <template v-if="item.icon === 'home'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -56,20 +64,25 @@ const menuItems = ref([
         </span>
       </router-link>
     </nav>
+
+    <!-- REMOVIDO: O <div> para o card aleatório -->
+
   </aside>
 </template>
 
 <style scoped>
+/* ESTILOS DE BASE (DESKTOP) */
 .sidebar {
   width: 280px;
+  height: 100vh;
   background-color: #fff;
   border-right: 1px solid #e0e0e0;
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 48px; /* espaço entre o perfil e o menu */
-  justify-content: flex-start; /* tudo no topo */
+  gap: 32px;
+  transition: width 0.3s ease, height 0.3s ease;
 }
 
 .user-profile {
@@ -96,14 +109,9 @@ const menuItems = ref([
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 32px; /* espaçamento entre botões */
+  gap: 24px;
   align-items: center;
   justify-content: center;
-}
-
-/* Ocultar o terceiro item (My Cards) */
-.menu-item:nth-child(3) {
-  display: none;
 }
 
 .menu-item {
@@ -132,40 +140,35 @@ const menuItems = ref([
   color: #fff;
 }
 
-.menu-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* REMOVIDO: Estilos .random-pokemon */
 
+
+/* ESTILOS RESPONSIVOS (MOBILE) */
 @media (max-width: 768px) {
   .sidebar {
     width: 100%;
+    height: auto;
     flex-direction: row;
-    padding: 16px;
+    padding: 8px 16px;
     gap: 16px;
-    justify-content: space-between;
-  }
-
-  .user-profile {
-    flex-direction: row;
-    padding: 0;
-  }
-
-  .avatar {
-    width: 40px;
-    height: 40px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
   }
 
   .menu {
     flex-direction: row;
-    gap: 24px;
-    justify-content: center;
+    gap: 16px;
+    width: 100%;
   }
 
   .menu-item {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Esconde o perfil (e o card que não existe mais) */
+  .user-profile {
+    display: none;
   }
 }
 </style>
