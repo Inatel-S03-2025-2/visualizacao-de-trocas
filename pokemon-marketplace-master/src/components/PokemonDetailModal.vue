@@ -155,7 +155,7 @@ const formatStatName = (name: string) => {
   position: fixed; top: 0; left: 0;
   width: 100vw; height: 100vh;
   background-color: rgba(0, 0, 0, 0.7);
-  z-index: 100;
+  z-index: 1000;
   display: flex; justify-content: center; align-items: center;
   padding: 24px;
 }
@@ -165,7 +165,7 @@ const formatStatName = (name: string) => {
   padding: 2rem;
   border-radius: 10px;
   position: relative;
-  z-index: 101;
+  z-index: 1001;
   width: 100%;
   max-width: 900px;
   max-height: 90vh;
@@ -312,7 +312,7 @@ const formatStatName = (name: string) => {
   position: absolute; top: 10px; right: 10px;
   background: #eee; border: none; border-radius: 50%;
   width: 30px; height: 30px; cursor: pointer; font-weight: bold;
-  z-index: 102;
+  z-index: 1002;
 }
 .close-button:hover { background: #ddd; }
 

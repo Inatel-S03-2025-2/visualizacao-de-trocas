@@ -610,10 +610,6 @@ const pokemonBackgroundStyle = computed(() => {
   transition: transform 0.2s ease;
 }
 
-.pokemon-card:hover {
-  transform: translateY(-0.4rem);
-}
-
 .card-inner {
   width: 95%;
   height: 97%;
