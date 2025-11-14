@@ -4,7 +4,7 @@ import PokemonCard from './PokemonCard.vue'
 // --- INTERFACES ---
 interface MockCard {
   id: number
-  name: string
+
   pokeApiId: number
 }
 interface Props {
