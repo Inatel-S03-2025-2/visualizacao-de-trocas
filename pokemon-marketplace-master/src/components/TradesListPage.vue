@@ -10,10 +10,10 @@ const trades = ref([
     username: 'Ash',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User1',
     cards: [
-      // ✅ CORREÇÃO: Adicionei os nomes
-      { id: 1, name: 'Charizard', image: 'https://images.pokemontcg.io/base1/4_hires.png' },
-      { id: 2, name: 'Alakazam', image: 'https://images.pokemontcg.io/base1/1_hires.png' },
-      { id: 3, name: 'Blastoise', image: 'https://images.pokemontcg.io/base1/2_hires.png' }
+      // ✅ MUDANÇA: 'image' removido. 'name' mantido para o filtro.
+      { id: 1, name: 'Charizard', pokeApiId: 6 },
+      { id: 2, name: 'Alakazam', pokeApiId: 65 },
+      { id: 3, name: 'Blastoise', pokeApiId: 9 }
     ]
   },
   {
@@ -21,10 +21,10 @@ const trades = ref([
     username: 'Giovanni',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User2',
     cards: [
-      // ✅ CORREÇÃO: Adicionei os nomes
-      { id: 1, name: 'Hitmonlee', image: 'https://images.pokemontcg.io/base1/7_hires.png' },
-      { id: 2, name: 'Machamp', image: 'https://images.pokemontcg.io/base1/8_hires.png' },
-      { id: 3, name: 'Magneton', image: 'https://images.pokemontcg.io/base1/9_hires.png' }
+      // ✅ MUDANÇA: 'image' removido.
+      { id: 1, name: 'Hitmonlee', pokeApiId: 106 },
+      { id: 2, name: 'Machamp', pokeApiId: 68 },
+      { id: 3, name: 'Magneton', pokeApiId: 82 }
     ]
   },
   {
@@ -32,10 +32,10 @@ const trades = ref([
     username: 'Brock',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User3',
     cards: [
-      // ✅ CORREÇÃO: Adicionei os nomes
-      { id: 1, name: 'Venusaur', image: 'https://images.pokemontcg.io/base1/15_hires.png' },
-      { id: 2, name: 'Zapdos', image: 'https://images.pokemontcg.io/base1/16_hires.png' },
-      { id: 3, name: 'Beedrill', image: 'https://images.pokemontcg.io/base1/17_hires.png' }
+      // ✅ MUDANÇA: 'image' removido.
+      { id: 1, name: 'Venusaur', pokeApiId: 3 },
+      { id: 2, name: 'Zapdos', pokeApiId: 145 },
+      { id: 3, name: 'Beedrill', pokeApiId: 15 }
     ]
   }
 ])
@@ -47,15 +47,12 @@ const handleSearch = (query: string) => {
   searchQuery.value = query.toLowerCase().trim()
 }
 
-// Computed filtrado - AGORA VAI FUNCIONAR
+// Sua lógica de filtro (sem mudanças, ainda precisa do 'name')
 const filteredTrades = computed(() => {
   if (!searchQuery.value) return trades.value
 
   return trades.value.filter(trade => {
-    // Verifica username
     if (trade.username.toLowerCase().includes(searchQuery.value)) return true
-
-    // Verifica cada carta
     return trade.cards.some(card => card.name.toLowerCase().includes(searchQuery.value))
   })
 })
@@ -64,7 +61,6 @@ const filteredTrades = computed(() => {
 <template>
   <div>
     <SearchBar @search="handleSearch" />
-
     <div class="trades-list">
       <TradeCard
           v-for="trade in filteredTrades"
@@ -72,17 +68,7 @@ const filteredTrades = computed(() => {
           :username="trade.username"
           :avatar="trade.avatar"
           :cards="trade.cards"
-
       />
     </div>
   </div>
 </template>
-
-<style scoped>
-.trades-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 24px;
-}
-</style>
