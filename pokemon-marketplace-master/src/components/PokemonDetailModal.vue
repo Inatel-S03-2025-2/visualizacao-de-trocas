@@ -19,14 +19,10 @@ const typeColors: Record<string, string> = {
   ground: '#DEB887', bug: '#9ACD32', fairy: '#EE82EE',
   ice: '#00BFFF', rock: '#B8860B', ghost: '#6A5ACD',
   dragon: '#7038F8', dark: '#705848', poison: '#A040A0',
-  fighting: '#C03028', steel: '#B8B8D0',
+  fighting: '#C03028', steel: '#B8B8D0', flying: '#61e8f6',
 }
 
 const typeSymbols: Record<string, string> = {
-  poison: 'https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/poison.svg',
-  ghost: 'https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/ghost.svg',
-  water: 'https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/water.svg',
-  // ... adicione os outros tipos
 }
 
 const fetchModalData = async (id: number) => {
@@ -272,14 +268,14 @@ const formatStatName = (name: string) => {
   display: grid;
   /* ✅ Mudança 2: Diminuir distância entre nome e valor. */
   /* Colunas: Nome (80px), Valor (30px), Barra (resto) */
-  grid-template-columns: 80px 20px 1fr; /* Era 40px */
+  grid-template-columns: 80px 30px 1fr; /* Era 40px */
   align-items: center;
   /* ✅ Mudança 2: Reduzir o gap no grid para aproximar os elementos */
   gap: 0.3rem; /* Era 0.5rem */
 }
 .stat-item.total {
   /* Mantém o mesmo grid */
-  grid-template-columns: 80px 20px 1fr; /* Era 40px */
+  grid-template-columns: 80px 30px 1fr; /* Era 40px */
   font-weight: 900;
   margin-top: 0.5rem;
   border-top: 1px solid #eee;
