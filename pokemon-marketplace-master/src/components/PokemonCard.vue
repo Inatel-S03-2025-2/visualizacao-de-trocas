@@ -1,5 +1,7 @@
 <script setup lang="ts">
+// ✅ 1. Importe o novo mapa de XP
 import { ref, computed, watch, onMounted, nextTick, onUnmounted, inject, defineEmits} from 'vue';
+import { pokemonBaseXpMap } from '../data/pokemonBaseXpMap';
 
 interface Props {
   id: number
@@ -9,6 +11,7 @@ interface Props {
 const props = defineProps<Props>()
 
 interface PokemonData {
+  id: number; // ✅ Adicionado 'id'
   name: string
   sprites: {
     other: {
@@ -45,6 +48,7 @@ interface PokemonData {
       url: string;
     }
   }>;
+  species: { url: string }; // ✅ Adicionado 'species'
 }
 
 const emit = defineEmits(['click']);
@@ -57,7 +61,7 @@ const pokemon = ref<PokemonData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// --- Lógica de Clique e Long Press ---
+// --- Lógica de Clique e Long Press (Sem mudanças) ---
 const longPressTimer = ref<NodeJS.Timeout | null>(null);
 const LONG_PRESS_DURATION = 700;
 const isLongPress = ref(false);
@@ -67,7 +71,6 @@ function handlePressDown() {
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value);
   }
-
   longPressTimer.value = setTimeout(() => {
     isLongPress.value = true;
     if (modalControls && typeof modalControls.openModal === 'function') {
@@ -81,7 +84,6 @@ function handlePressDown() {
     longPressTimer.value = null;
   }, LONG_PRESS_DURATION);
 }
-
 function handlePressRelease() {
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value);
@@ -95,7 +97,6 @@ function handlePressRelease() {
   }
   isLongPress.value = false;
 }
-
 function handlePressCancel() {
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value);
@@ -105,8 +106,8 @@ function handlePressCancel() {
 }
 // --- Fim da Lógica de Interação ---
 
-const evolutionChain = ref<any>(null);
-const isFinalEvolution = ref(false);
+// 🛑 2. Ref 'evolutionChain' removida
+const isFinalEvolution = ref(false); // Esta ref agora é controlada pelo XP
 const height = ref(0);
 const weight = ref(0);
 const genus = ref('');
@@ -114,15 +115,14 @@ const weaknessSymbolUrl = ref('');
 const resistanceSymbolUrl = ref('');
 const retreatCostCount = ref(1);
 
+// ... (AttackSlot, colorlessSymbolUrl, etc. sem mudanças) ...
 interface AttackSlot {
   name: string;
   type: string;
 }
 const attackOne = ref<AttackSlot | null>(null);
 const attackTwo = ref<AttackSlot | null>(null);
-
 const colorlessSymbolUrl = computed(() => energySymbolMap['normal']);
-
 const pokemonCard = ref<HTMLElement | null>(null)
 const fonteDetalhes = ref<number | null>(null);
 
@@ -148,7 +148,7 @@ const energySymbolMap: Record<string, string> = {
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
-// --- Lógica de Fonte Responsiva ---
+// --- Lógica de Fonte Responsiva (Sem mudanças) ---
 function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel: string) {
   if (!containerElement) return
   const largura = containerElement.offsetWidth
@@ -156,7 +156,6 @@ function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel
   containerElement.style.setProperty(`--${nomeVariavel}`, `${valor}px`)
   return valor;
 }
-
 function recalcularFontes() {
   if (pokemonCard.value) {
     const el = pokemonCard.value;
@@ -178,7 +177,6 @@ function recalcularFontes() {
     fonteDetalhes.value = novaFonte;
   }
 }
-
 watch(pokemon, async (novoPokemon) => {
   if (novoPokemon) {
     await nextTick();
@@ -186,7 +184,6 @@ watch(pokemon, async (novoPokemon) => {
     recalcularFontes();
   }
 }, { immediate: true });
-
 const paddingAjustado = computed(() => {
   if (!pokemonCard.value) return 0;
   if (fonteDetalhes.value !== null && fonteDetalhes.value <= 9) {
@@ -195,7 +192,6 @@ const paddingAjustado = computed(() => {
     return reescaleText(pokemonCard.value, 0, 'paddin-detalhes');
   }
 });
-
 watch(paddingAjustado, (padding) => {
   if (pokemonCard.value) {
     pokemonCard.value.style.setProperty('--padding-detalhes', `${padding}px`);
@@ -204,7 +200,7 @@ watch(paddingAjustado, (padding) => {
 // --- Fim da Lógica de Fonte ---
 
 
-// --- Lógica de Fetch ---
+// --- Lógica de Fetch (Sem mudanças) ---
 const fetchPokemon = async (id: number) => {
   loading.value = true
   error.value = null
@@ -220,6 +216,7 @@ const fetchPokemon = async (id: number) => {
     if (!res.ok) {
       throw new Error(`Pokémon com ID ${id} não encontrado.`)
     }
+    // A interface PokemonData agora espera 'id' e 'species'
     const data: PokemonData = await res.json()
     pokemon.value = data
     height.value = data.height / 10;
@@ -253,55 +250,60 @@ const fetchDamageRelations = async (pokemonData: PokemonData) => {
   }
 };
 
-const fetchEvolutionChain = async (speciesUrl: string) => {
+// 🛑 3. Função 'fetchEvolutionChain' REMOVIDA
+
+// ✅ 4. Nova função para buscar dados secundários (Genus) e checar XP
+async function fetchSecondaryData(pokemonData: PokemonData) {
+  // 1. Busca o Genus (como antes)
   try {
-    const speciesRes = await fetch(speciesUrl);
+    const speciesRes = await fetch(pokemonData.species.url);
     if (!speciesRes.ok) throw new Error("Species not found.");
     const speciesData = await speciesRes.json();
-    const evoChainRes = await fetch(speciesData.evolution_chain.url);
-    if (!evoChainRes.ok) throw new Error("Evolution Chain not found.");
-    const evoChainData = await evoChainRes.json();
-    evolutionChain.value = evoChainData.chain;
     const englishGenus = speciesData.genera.find((g: any) => g.language.name === 'en');
     genus.value = englishGenus ? englishGenus.genus : 'Unknown Pokémon';
-    const findEvolution = (chain: any): boolean | undefined => {
-      if (chain.species.name === pokemon.value?.name) {
-        return chain.evolves_to.length === 0;
-      }
-      for (const nextChain of chain.evolves_to) {
-        const found = findEvolution(nextChain);
-        if (found !== undefined) return found;
-      }
-      return undefined;
-    };
-    isFinalEvolution.value = findEvolution(evoChainData.chain) ?? false;
-  } catch (e: any) {
-    console.error('Erro ao buscar cadeia de evolução:', e);
-    isFinalEvolution.value = false;
+  } catch (e) {
+    console.error('Erro ao buscar genus:', e);
+    genus.value = 'Unknown Pokémon';
+  }
+
+  // 2. Checa o XP (NOVA LÓGICA)
+  try {
+    // Busca o XP do nosso mapa local (síncrono, rápido!)
+    const baseXP = pokemonBaseXpMap[pokemonData.id];
+
+    if (baseXP && baseXP > 210) {
+      isFinalEvolution.value = true;
+    } else {
+      isFinalEvolution.value = false;
+    }
+  } catch (e) {
+    console.error('Erro ao checar BaseXP do mapa:', e);
+    isFinalEvolution.value = false; // Garante um fallback
   }
 }
 
+// ✅ 5. Watcher de 'pokemon' ATUALIZADO
 watch(pokemon, (newPokemon) => {
   if (newPokemon) {
-    const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
-    fetchEvolutionChain(speciesUrl);
+    // Chama a nova função de dados secundários
+    fetchSecondaryData(newPokemon);
+
+    // Funções existentes
     processAttackData(newPokemon);
     fetchDamageRelations(newPokemon);
   }
 });
 
-// --- Hooks de Ciclo de Vida ---
+// --- Hooks de Ciclo de Vida (Sem mudanças) ---
 onMounted(() => {
   recalcularFontes()
   window.addEventListener('resize', recalcularFontes)
 })
 
-// ✅ BUGFIX: Remove o listener de resize ao desmontar
 onUnmounted(() => {
   window.removeEventListener('resize', recalcularFontes)
 })
 
-// Observador principal para buscar dados quando a prop 'id' mudar
 watch(() => props.id, (newId) => {
   if (newId) {
     fetchPokemon(newId);
@@ -310,7 +312,7 @@ watch(() => props.id, (newId) => {
   immediate: true
 });
 
-// --- Lógica de Ataques ---
+// --- Lógica de Ataques (Sem mudanças) ---
 const typeColors: Record<string, string> = {
   electric: '#FFD700', fire: '#FF4500', water: '#1E90FF',
   grass: '#32CD32', psychic: '#C71585', normal: '#D3D3D3',
@@ -319,42 +321,34 @@ const typeColors: Record<string, string> = {
   dragon: '#7038F8', dark: '#705848', poison: '#A040A0',
   fighting: '#C03028', steel: '#B8B8D0',
 }
-
 const imageUrl = computed(() =>
     pokemon.value?.sprites?.other?.dream_world?.front_default ||
     pokemon.value?.sprites?.other['official-artwork']?.front_default ||
     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'
 )
-
 const primaryType = computed(() => pokemon.value?.types?.[0]?.type?.name || 'normal')
 const bgColor = computed(() => typeColors[primaryType.value] || '#CCC')
 const energySymbolUrl = computed(() => {
   return energySymbolMap[primaryType.value] || energySymbolMap['unknown'];
 });
-
 const attackOneEnergyUrl = computed(() => {
   const type = attackOne.value?.type || 'normal';
   return energySymbolMap[type] || energySymbolMap['unknown'];
 });
-
 const attackTwoEnergyUrl = computed(() => {
   const type = attackTwo.value?.type || 'normal';
   return energySymbolMap[type] || energySymbolMap['unknown'];
 });
-
 const getStat = (name: 'hp' | 'attack' | 'special-attack'): number => {
   const stat = pokemon.value?.stats.find(s => s.stat.name === name)
   return stat?.base_stat ?? 0
 }
-
 const hp = computed(() => getStat('hp'))
 const attack = computed(() => getStat('attack'))
 const spAttack = computed(() => getStat('special-attack'))
-
 const getRandomNumber = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
 const getMoveDetails = async (moveUrl: string): Promise<{ type: string }> => {
   try {
     const res = await fetch(moveUrl);
@@ -367,12 +361,10 @@ const getMoveDetails = async (moveUrl: string): Promise<{ type: string }> => {
     return { type: 'normal' };
   }
 };
-
 const getAbilityDetails = async (): Promise<{ type: string }> => {
   const type = primaryType.value;
   return { type };
 }
-
 const processAttackData = async (pokemonData: PokemonData) => {
   attackOne.value = null;
   attackTwo.value = null;
@@ -401,6 +393,7 @@ const processAttackData = async (pokemonData: PokemonData) => {
 };
 
 // --- Lógica de Textura (Backgrounds) ---
+// (Esta parte não muda, pois ela JÁ LÊ o 'isFinalEvolution.value')
 const cardTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'fogo', 'grass': 'grass', 'electric': 'eletric',
   'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
@@ -410,17 +403,17 @@ const cardTextureMap: Record<string, string> = {
 };
 
 const pokemonTextureMap: Record<string, string> = {
-  'water': 'water', 'fire': 'ground', 'grass': 'grass', 'electric': 'electric',
-  'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
+  'water': 'water', 'fire': 'fire', 'grass': 'grass', 'electric': 'electric',
+  'psychic': 'Psy', 'dark': 'dark', 'dragon': 'Psy', 'fighting': 'ground',
   'steel': 'ground', 'normal': 'grass', 'ground': 'ground', 'rock': 'ground',
   'poison': 'dark', 'bug': 'grass', 'fairy': 'Psy', 'ghost': 'dark',
-  'ice': 'water', 'flying': 'normal', 'unknown': 'normal',
+  'ice': 'ice', 'flying': 'grass', 'unknown': 'normal',
 };
 
 const textureCounts: Record<string, Record<string, number>> = {
   BGNormal: {
-    water: 3, fire: 2, grass: 4, normal: 1, Psy: 2, ground: 3,
-    fighting: 2, dark: 1, dragon: 1, cinza: 1, eletric: 3, fogo: 2,
+    water: 5, fire: 5, grass: 6, Psy: 3, ground: 4,
+    dark: 4, cinza: 1, eletric: 3,
   },
   BGFinal: { all: 6 },
   BGCard: {
@@ -435,14 +428,20 @@ const cardBackgroundStyle = computed(() => {
   return `url('${texturePath}')`;
 });
 
+// Esta computed property agora usa a nova lógica de 'isFinalEvolution'
 const pokemonBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
   const fileKey = pokemonTextureMap[typeName] || 'normal';
   let texturePath = '';
+
+  // A lógica de XP (base > 210) define 'isFinalEvolution.value'
+  // Esta computed property lê 'isFinalEvolution.value' e funciona automaticamente.
   const maxCount = isFinalEvolution.value
       ? textureCounts.BGFinal.all
       : (textureCounts.BGNormal[fileKey] || 1);
+
   const randomIndex = (props.id % maxCount) + 1;
+
   if (isFinalEvolution.value) {
     const baseFolder = 'BGFinal';
     const fileNamePrefix = 'BGf';
