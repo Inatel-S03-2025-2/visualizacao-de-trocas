@@ -144,13 +144,7 @@ const energySymbolMap: Record<string, string> = {
   'ground': 'https://i.imgur.com/8gUKcVr.png',
   'rock': 'https://i.imgur.com/8gUKcVr.png',
   'ice': 'https://i.imgur.com/hXZrrgo.png',
-  'fairy': 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/0726fbdd-a6a6-4871' +
-      '-bed6-e8e0b9ce2af0/d6jtiuy-f4dc7bea-beb7-417b-ba85-736ae9f5c030.png?token=eyJ0eXA' +
-      'iOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQ' +
-      'xNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIs' +
-      'Im9iaiI6W1t7InBhdGgiOiIvZi8wNzI1ZmJkZC1hNmE2LTQ4NzEtYmVkNi1lOGUwYjljZTJhZjAvZDZqd' +
-      'Gl1eS1mNGRjN2JlYS1iZWI3LTQxN2ItYmE4NS03MzZhZTlmNWMwMzAucG5nIn1dXSwiYXVkIjpbInVybj' +
-      'pzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.-KQR9aFKGB-XMw-8v1BIiZj2c0z6tCFCBSd1nmltnqA',
+  'fairy': 'https://archives.bulbagarden.net/media/upload/thumb/4/40/Fairy-attack.png/70px-Fairy-attack.png',
   'flying': 'https://i.imgur.com/frwYIiG.png',
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
@@ -688,11 +682,11 @@ const pokemonBackgroundStyle = computed(() => {
 
         </div>
         <div class="card-description-box">
-          Este card é uma representação colecionável de um Pokémon, ideal para batalhas estratégicas.
+          This is a Collectible Pokémon Tradding Card from the: "Generations" Box-Set of Tradding Cards.
         </div>
 
         <div class="card-legal-info">
-          <span>Ilustru: Henry.blh 2025 26 27 Nentendo,Creatures, GAMEFREAK  25/453</span>
+          <span>Ilustru: Henry.blh 2025 26 27 Nintendo, Creatures in., GAMEFREAK 25/453</span>
         </div>
 
         <div class="holo-overlay"></div>
@@ -737,7 +731,7 @@ const pokemonBackgroundStyle = computed(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.4Da);
   font-family: 'Segoe UI', sans-serif;
   transition: transform 0.2s ease;
 }
@@ -940,7 +934,7 @@ const pokemonBackgroundStyle = computed(() => {
   padding: 0.1rem var(--pp06);
   margin-top: var(--margin-image);
   font-size: var(--fonte-detalhes);
-  font-weight: 650;
+  font-weight: 700;
   color: #333;
   text-align: center;
   line-height: 1.1;
@@ -976,7 +970,7 @@ const pokemonBackgroundStyle = computed(() => {
 
 .pokemon-card.holo .holo-overlay {
   display: block;
-  opacity: 0.6;
+  opacity: 0.5;
   animation: holo-shift 10s linear infinite alternate;
 
 }

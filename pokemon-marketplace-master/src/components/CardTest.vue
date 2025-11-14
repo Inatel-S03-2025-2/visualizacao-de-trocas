@@ -1,18 +1,13 @@
 <script setup lang="ts">
-// ✅ IMPORTAÇÕES NECESSÁRIAS
+
 import { ref, onMounted } from 'vue'
 import PokemonCard from './PokemonCard.vue'
-//   👆 ATENÇÃO AQUI:
-//   Se seu PokemonCard.vue NÃO está na mesma pasta,
-//   mude esta linha para:
-//   import PokemonCard from '../components/PokemonCard.vue'
 
-// ✅ LÓGICA DO CARD ALEATÓRIO
 const randomId = ref<number | null>(null)
 
 onMounted(() => {
   // Gera um ID aleatório de 1 a 151 (Gen 1)
-  randomId.value = Math.floor(Math.random() * 151) + 1
+  randomId.value = Math.floor(Math.random() * 1000) + 1
 })
 </script>
 
@@ -25,17 +20,18 @@ onMounted(() => {
 
       <div class="card-wrapper">
         <h3>Pequeno (150px)</h3>
-        <PokemonCard v-if="randomId" :id="randomId"  />
+        <PokemonCard v-if="randomId" :id="randomId+4"  />
       </div>
+
 
       <div class="card-wrapper">
         <h3>Médio (250px)</h3>
-        <PokemonCard v-if="randomId" :id="randomId" rarity="holo" />
+        <PokemonCard v-if="randomId" :id="randomId+8" rarity="holo" />
       </div>
 
       <div class="card-wrapper">
         <h3>Grande (400px)</h3>
-        <PokemonCard v-if="randomId" :id="randomId" />
+        <PokemonCard v-if="randomId" :id="randomId+16" />
       </div>
 
     </div>
