@@ -1,12 +1,12 @@
 <script setup lang="ts">
-
+// --- SCRIPT (Sem mudanças) ---
 import { ref, onMounted } from 'vue'
 import PokemonCard from './PokemonCard.vue'
 
 const randomId = ref<number | null>(null)
 
 onMounted(() => {
-  // Gera um ID aleatório de 1 a 151 (Gen 1)
+  // Gera um ID aleatório de 1 a 1000
   randomId.value = Math.floor(Math.random() * 1000) + 1
 })
 </script>
@@ -14,7 +14,6 @@ onMounted(() => {
 <template>
   <div class="card-test-page">
     <h1>Teste de Responsividade de Cards</h1>
-    <p>O mesmo card de Pokémon (ID: {{ randomId || '...' }}) renderizado em diferentes tamanhos de contêiner. Redimensione a janela para ver como eles se adaptam.</p>
 
     <div class="card-display-area">
 
@@ -39,7 +38,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ✅ ESTILOS CORRETOS */
+/* --- STYLE (Modificações aplicadas) --- */
+
 .card-test-page {
   padding: 24px;
   max-width: 1200px;
@@ -57,18 +57,16 @@ p {
   line-height: 1.6;
 }
 
-/* Um contêiner flexível para os nossos wrappers */
 .card-display-area {
   display: flex;
-  flex-wrap: wrap; /* Permite que os cards quebrem a linha em telas pequenas */
+  flex-wrap: wrap;
   gap: 24px;
-  justify-content: center; /* Centraliza os cards */
-  align-items: flex-start; /* Alinha os cards pelo topo */
+  justify-content: center;
+  align-items: flex-start;
   padding-top: 24px;
   border-top: 1px solid #eee;
 }
 
-/* O "wrapper" (caixa) que define o tamanho de cada card */
 .card-wrapper {
   padding: 16px;
   background: #fff;
@@ -78,6 +76,9 @@ p {
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  /* ✅ MUDANÇA: Adicionado perspective para o efeito 3D */
+  perspective: 1000px;
 }
 
 .card-wrapper h3 {
@@ -87,24 +88,32 @@ p {
   margin: 0;
 }
 
-/* Esta é a mágica!
-  Forçamos o PokemonCard (usando :deep) a ter
-  exatamente 100% da largura do seu .card-wrapper
-*/
 .card-wrapper :deep(.pokemon-card) {
+  /* Tamanho (como estava antes) */
   width: 100% !important;
   height: auto !important;
   max-width: 100%;
+
+  /* ✅ MUDANÇA: Adicionada a transição e o estilo 3D */
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  transform-style: preserve-3d;
 }
 
-/* Definimos os tamanhos dos wrappers */
+/* ✅ MUDANÇA: Adicionado o bloco de HOVER */
+/* Quando o PAI (.card-wrapper) sofre hover, o FILHO (:deep(.pokemon-card)) anima */
+.card-wrapper:hover :deep(.pokemon-card) {
+  transform: translateY(-0.5rem) scale(1.03);
+  box-shadow: 0 0.8rem 1.5rem rgba(0, 0, 0, 0.25);
+  z-index: 10;
+}
+
+
+/* Definimos os tamanhos dos wrappers (Sem mudanças) */
 .card-wrapper:nth-child(1) { width: 150px; }
 .card-wrapper:nth-child(2) { width: 250px; }
 .card-wrapper:nth-child(3) { width: 450px; }
 
-/* Em telas muito pequenas, fazemos todos os wrappers
-   ocuparem 100% da largura para melhor visualização
-*/
+/* Media query (Sem mudanças) */
 @media (max-width: 480px) {
   .card-wrapper:nth-child(1),
   .card-wrapper:nth-child(2),
