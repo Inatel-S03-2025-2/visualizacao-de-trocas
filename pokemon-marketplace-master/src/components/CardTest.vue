@@ -1,13 +1,8 @@
 <script setup lang="ts">
-// ✅ IMPORTAÇÕES NECESSÁRIAS
+
 import { ref, onMounted } from 'vue'
 import PokemonCard from './PokemonCard.vue'
-//   👆 ATENÇÃO AQUI:
-//   Se seu PokemonCard.vue NÃO está na mesma pasta,
-//   mude esta linha para:
-//   import PokemonCard from '../components/PokemonCard.vue'
 
-// ✅ LÓGICA DO CARD ALEATÓRIO
 const randomId = ref<number | null>(null)
 
 onMounted(() => {
