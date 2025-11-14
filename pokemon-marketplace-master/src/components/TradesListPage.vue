@@ -3,12 +3,12 @@ import { ref, computed } from 'vue'
 import SearchBar from './Searchbar.vue'
 import TradeCard from './TradeCard.vue'
 import PokemonCard from './PokemonCard.vue'
+import { pokemonNameMap } from '../data/pokemonNameMap' // ✅ 1. Importe o mapa
 
-// --- INTERFACES (Sem mudanças) ---
+// --- INTERFACES DE DADOS ---
 interface MockCard {
-  id: number
-  name: string
-  pokeApiId: number
+  id: number       // ID local
+  pokeApiId: number // ID da API (O 'name' foi removido)
 }
 interface Trade {
   id: number
@@ -17,17 +17,17 @@ interface Trade {
   cards: MockCard[]
 }
 
-// --- DADOS MOCADOS (Sem mudanças) ---
-// (Mantemos o 'name' aqui para a SearchBar funcionar)
+// --- DADOS MOCADOS (LIMPOS!) ---
+// ✅ 2. Seus dados agora estão limpos, sem 'name'
 const allTrades = ref<Trade[]>([
   {
     id: 1,
     username: 'Ash',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User1',
     cards: [
-      { id: 1, name: 'Charizard', pokeApiId: 6 },
-      { id: 2, name: 'Alakazam', pokeApiId: 65 },
-      { id: 3, name: 'Blastoise', pokeApiId: 9 }
+      { id: 1, pokeApiId: 6 },
+      { id: 2, pokeApiId: 65 },
+      { id: 3, pokeApiId: 9 }
     ]
   },
   {
@@ -35,49 +35,69 @@ const allTrades = ref<Trade[]>([
     username: 'Giovanni',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User2',
     cards: [
-      { id: 1, name: 'Hitmonlee', pokeApiId: 106 },
-      { id: 2, name: 'Machamp', pokeApiId: 68 },
-      { id: 3, name: 'Magneton', pokeApiId: 82 }
+      { id: 1, pokeApiId: 106 },
+      { id: 2, pokeApiId: 68 },
+      { id: 3, pokeApiId: 82 }
+    ]
+  },
+  {
+    id: 3,
+    username: 'Brock',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User3',
+    cards: [
+      { id: 1, pokeApiId: 3 },
+      { id: 2, pokeApiId: 145 },
+      { id: 3, pokeApiId: 15 }
     ]
   }
 ])
 
-// --- LÓGICA DE FILTRO (Sem mudanças) ---
+// --- LÓGICA DE FILTRO ---
 const searchQuery = ref('')
 function handleSearch(query: string) {
   searchQuery.value = query.toLowerCase().trim()
 }
+
+// ✅ 3. Lógica de filtro ATUALIZADA para usar o 'pokemonNameMap'
 const filteredTrades = computed(() => {
   if (!searchQuery.value) return allTrades.value
+
   return allTrades.value.filter(trade => {
+    // 1. Filtra pelo nome do usuário (como antes)
     if (trade.username.toLowerCase().includes(searchQuery.value)) return true
-    return trade.cards.some(card =>
-        card.name.toLowerCase().includes(searchQuery.value) ||
-        card.pokeApiId.toString() === searchQuery.value
-    )
+
+    // 2. Filtra pelo nome (do mapa) ou ID
+    return trade.cards.some(card => {
+      // Pega o nome do nosso mapa local
+      const cardName = pokemonNameMap[card.pokeApiId] || ''
+
+      return (
+          cardName.toLowerCase().includes(searchQuery.value) ||
+          card.pokeApiId.toString() === searchQuery.value
+      )
+    })
   })
 })
 
-// --- LÓGICA DE ESTADO ---
+// --- LÓGICA DE ESTADO (EXPANSÃO E POPUP) ---
+// (Toda a sua lógica de 'expandedTradeId', 'showPopup', 'myCards',
+// 'wishlist', 'handleCardClick', 'openPopup', etc. continua EXATAMENTE IGUAL)
+
 const expandedTradeId = ref<number | null>(null)
 const selectedCardApiId = ref<number | null>(null)
 const showPopup = ref(false)
-// ✅ MUDANÇA: Agora guardamos o ApiId do card selecionado no popup
 const selectedUserCardApiId = ref<number | null>(null)
 
-// Dados do Popup
+// Limpe os dados do popup também
 const wishlist = ref([
-  { id: 1, name: 'Hitmonchan', pokeApiId: 107 },
-  { id: 2, name: 'Nidorino', pokeApiId: 33 },
+  { id: 1, pokeApiId: 107 },
+  { id: 2, pokeApiId: 33 },
 ])
 const myCards = ref([
-  { id: 1, name: 'Fearow', pokeApiId: 22 },
-  { id: 2, name: 'Pidgey', pokeApiId: 16 },
+  { id: 1, pokeApiId: 22 },
+  { id: 2, pokeApiId: 16 },
 ])
 
-// 🛑 MUDANÇA: Removido 'myCardsStaticImages' e 'selectedMiniImageUrl'
-
-// --- FUNÇÕES DE CONTROLE ---
 function handleCardClick(tradeId: number, cardApiId: number) {
   if (expandedTradeId.value === tradeId && selectedCardApiId.value === cardApiId) {
     expandedTradeId.value = null
@@ -91,25 +111,20 @@ function handleCardClick(tradeId: number, cardApiId: number) {
 function openPopup() { showPopup.value = true }
 function closePopup() {
   showPopup.value = false
-  selectedUserCardApiId.value = null // ✅ Limpa o ID da API
+  selectedUserCardApiId.value = null
 }
-
-// ✅ MUDANÇA: 'selectUserCard' agora recebe e guarda o pokeApiId
 function selectUserCard(cardApiId: number) {
   selectedUserCardApiId.value = cardApiId
   showPopup.value = false
 }
-
 function handleAddProposal() {
   if (!expandedTradeId.value || !selectedCardApiId.value || !selectedUserCardApiId.value) return
-
   console.log('ENVIANDO PROPOSTA:', {
     offeredCardApiId: selectedUserCardApiId.value,
     targetCardApiId: selectedCardApiId.value
   })
   closePopup();
 }
-
 </script>
 
 <template>

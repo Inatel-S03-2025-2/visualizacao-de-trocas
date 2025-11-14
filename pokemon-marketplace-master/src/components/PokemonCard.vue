@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// ✅ MUDANÇA: 'defineEmits' foi readicionado
 import { ref, computed, watch, onMounted, nextTick, onUnmounted, inject, defineEmits} from 'vue';
 
 interface Props {
@@ -48,10 +47,8 @@ interface PokemonData {
   }>;
 }
 
-// ✅ MUDANÇA: Definindo o novo evento 'click'
 const emit = defineEmits(['click']);
 
-// Injetando os controles do modal fornecidos pelo App.vue
 const modalControls = inject('modal-controls') as {
   openModal: (data: { id: number, rarity?: 'normal' | 'holo' }) => void
 } | undefined;
@@ -60,14 +57,11 @@ const pokemon = ref<PokemonData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// --- LÓGICA DO LONG PRESS ATUALIZADA (CORRIGIDA) ---
+// --- Lógica de Clique e Long Press ---
 const longPressTimer = ref<NodeJS.Timeout | null>(null);
-const LONG_PRESS_DURATION = 700; // 700ms
+const LONG_PRESS_DURATION = 700;
 const isLongPress = ref(false);
 
-/**
- * 1. Mouse/Touch Pressionado
- */
 function handlePressDown() {
   isLongPress.value = false;
   if (longPressTimer.value) {
@@ -75,9 +69,7 @@ function handlePressDown() {
   }
 
   longPressTimer.value = setTimeout(() => {
-    console.log('✅ LONG PRESS (Global)!');
     isLongPress.value = true;
-
     if (modalControls && typeof modalControls.openModal === 'function') {
       modalControls.openModal({
         id: props.id,
@@ -86,22 +78,16 @@ function handlePressDown() {
     } else {
       console.warn("Controle do modal ('modal-controls') não foi 'provided' pelo App.vue!");
     }
-
     longPressTimer.value = null;
   }, LONG_PRESS_DURATION);
 }
 
-/**
- * 2. Mouse/Touch Solto (EM CIMA do card)
- */
 function handlePressRelease() {
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value);
     longPressTimer.value = null;
   }
-
   if (!isLongPress.value && pokemon.value) {
-    console.log('✅ CLICK (Curto)!');
     emit('click', {
       id: props.id,
       name: pokemon.value.name
@@ -110,18 +96,14 @@ function handlePressRelease() {
   isLongPress.value = false;
 }
 
-/**
- * 3. Mouse/Touch Saiu da Área
- */
 function handlePressCancel() {
   if (longPressTimer.value) {
-    console.log('❌ Ação (click/long press) CANCELADA.');
     clearTimeout(longPressTimer.value);
     longPressTimer.value = null;
   }
   isLongPress.value = false;
 }
-// --- FIM DA LÓGICA ATUALIZADA ---
+// --- Fim da Lógica de Interação ---
 
 const evolutionChain = ref<any>(null);
 const isFinalEvolution = ref(false);
@@ -166,7 +148,7 @@ const energySymbolMap: Record<string, string> = {
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
-// ... (Funções reescaleText, recalcularFontes, paddingAjustado não mudam) ...
+// --- Lógica de Fonte Responsiva ---
 function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel: string) {
   if (!containerElement) return
   const largura = containerElement.offsetWidth
@@ -174,6 +156,7 @@ function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel
   containerElement.style.setProperty(`--${nomeVariavel}`, `${valor}px`)
   return valor;
 }
+
 function recalcularFontes() {
   if (pokemonCard.value) {
     const el = pokemonCard.value;
@@ -195,6 +178,7 @@ function recalcularFontes() {
     fonteDetalhes.value = novaFonte;
   }
 }
+
 watch(pokemon, async (novoPokemon) => {
   if (novoPokemon) {
     await nextTick();
@@ -202,6 +186,7 @@ watch(pokemon, async (novoPokemon) => {
     recalcularFontes();
   }
 }, { immediate: true });
+
 const paddingAjustado = computed(() => {
   if (!pokemonCard.value) return 0;
   if (fonteDetalhes.value !== null && fonteDetalhes.value <= 9) {
@@ -210,15 +195,17 @@ const paddingAjustado = computed(() => {
     return reescaleText(pokemonCard.value, 0, 'paddin-detalhes');
   }
 });
+
 watch(paddingAjustado, (padding) => {
   if (pokemonCard.value) {
     pokemonCard.value.style.setProperty('--padding-detalhes', `${padding}px`);
   }
 });
+// --- Fim da Lógica de Fonte ---
 
 
+// --- Lógica de Fetch ---
 const fetchPokemon = async (id: number) => {
-  console.log(`Buscando dados para o ID: ${id}`); // Log de debug
   loading.value = true
   error.value = null
   pokemon.value = null
@@ -246,7 +233,6 @@ const fetchPokemon = async (id: number) => {
   }
 }
 
-// ... (fetchDamageRelations não muda) ...
 const fetchDamageRelations = async (pokemonData: PokemonData) => {
   const fallbackSymbol = energySymbolMap['normal'];
   weaknessSymbolUrl.value = fallbackSymbol;
@@ -267,8 +253,6 @@ const fetchDamageRelations = async (pokemonData: PokemonData) => {
   }
 };
 
-
-// ... (fetchEvolutionChain não muda) ...
 const fetchEvolutionChain = async (speciesUrl: string) => {
   try {
     const speciesRes = await fetch(speciesUrl);
@@ -297,7 +281,6 @@ const fetchEvolutionChain = async (speciesUrl: string) => {
   }
 }
 
-// ✅ MUDANÇA: O 'watch' que busca dados secundários não precisa de 'immediate: true'
 watch(pokemon, (newPokemon) => {
   if (newPokemon) {
     const speciesUrl = `https://pokeapi.co/api/v2/pokemon-species/${newPokemon.name}`;
@@ -307,18 +290,18 @@ watch(pokemon, (newPokemon) => {
   }
 });
 
-// 🛑 MUDANÇA: 'onMounted' agora só cuida dos 'listeners'
+// --- Hooks de Ciclo de Vida ---
 onMounted(() => {
-  // O 'watch' com 'immediate: true' abaixo substitui a busca no onMounted
   recalcularFontes()
   window.addEventListener('resize', recalcularFontes)
 })
 
-// ✅ MUDANÇA: ESTA É A CORREÇÃO PRINCIPAL
-// Este 'watch' observa a prop 'id'.
-// Se a 'prop.id' mudar, ele chama 'fetchPokemon' com o novo ID.
-// 'immediate: true' faz com que ele rode assim que o componente é montado,
-// substituindo a lógica que estava no 'onMounted'.
+// ✅ BUGFIX: Remove o listener de resize ao desmontar
+onUnmounted(() => {
+  window.removeEventListener('resize', recalcularFontes)
+})
+
+// Observador principal para buscar dados quando a prop 'id' mudar
 watch(() => props.id, (newId) => {
   if (newId) {
     fetchPokemon(newId);
@@ -327,8 +310,7 @@ watch(() => props.id, (newId) => {
   immediate: true
 });
 
-
-// ... (O resto do script: typeColors, computed, etc... não muda) ...
+// --- Lógica de Ataques ---
 const typeColors: Record<string, string> = {
   electric: '#FFD700', fire: '#FF4500', water: '#1E90FF',
   grass: '#32CD32', psychic: '#C71585', normal: '#D3D3D3',
@@ -337,34 +319,42 @@ const typeColors: Record<string, string> = {
   dragon: '#7038F8', dark: '#705848', poison: '#A040A0',
   fighting: '#C03028', steel: '#B8B8D0',
 }
+
 const imageUrl = computed(() =>
     pokemon.value?.sprites?.other?.dream_world?.front_default ||
     pokemon.value?.sprites?.other['official-artwork']?.front_default ||
     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'
 )
+
 const primaryType = computed(() => pokemon.value?.types?.[0]?.type?.name || 'normal')
 const bgColor = computed(() => typeColors[primaryType.value] || '#CCC')
 const energySymbolUrl = computed(() => {
   return energySymbolMap[primaryType.value] || energySymbolMap['unknown'];
 });
+
 const attackOneEnergyUrl = computed(() => {
   const type = attackOne.value?.type || 'normal';
   return energySymbolMap[type] || energySymbolMap['unknown'];
 });
+
 const attackTwoEnergyUrl = computed(() => {
   const type = attackTwo.value?.type || 'normal';
   return energySymbolMap[type] || energySymbolMap['unknown'];
 });
+
 const getStat = (name: 'hp' | 'attack' | 'special-attack'): number => {
   const stat = pokemon.value?.stats.find(s => s.stat.name === name)
   return stat?.base_stat ?? 0
 }
+
 const hp = computed(() => getStat('hp'))
 const attack = computed(() => getStat('attack'))
 const spAttack = computed(() => getStat('special-attack'))
+
 const getRandomNumber = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
 const getMoveDetails = async (moveUrl: string): Promise<{ type: string }> => {
   try {
     const res = await fetch(moveUrl);
@@ -377,10 +367,12 @@ const getMoveDetails = async (moveUrl: string): Promise<{ type: string }> => {
     return { type: 'normal' };
   }
 };
+
 const getAbilityDetails = async (): Promise<{ type: string }> => {
   const type = primaryType.value;
   return { type };
 }
+
 const processAttackData = async (pokemonData: PokemonData) => {
   attackOne.value = null;
   attackTwo.value = null;
@@ -407,6 +399,8 @@ const processAttackData = async (pokemonData: PokemonData) => {
     attackTwo.value = { name: 'Rest', type: 'normal' };
   }
 };
+
+// --- Lógica de Textura (Backgrounds) ---
 const cardTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'fogo', 'grass': 'grass', 'electric': 'eletric',
   'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
@@ -414,6 +408,7 @@ const cardTextureMap: Record<string, string> = {
   'poison': 'Psy', 'bug': 'grass', 'fairy': 'Psy', 'ghost': 'Psy', 'ice': 'water',
   'flying': 'normal', 'unknown': 'normal',
 };
+
 const pokemonTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'ground', 'grass': 'grass', 'electric': 'electric',
   'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
@@ -421,6 +416,7 @@ const pokemonTextureMap: Record<string, string> = {
   'poison': 'dark', 'bug': 'grass', 'fairy': 'Psy', 'ghost': 'dark',
   'ice': 'water', 'flying': 'normal', 'unknown': 'normal',
 };
+
 const textureCounts: Record<string, Record<string, number>> = {
   BGNormal: {
     water: 3, fire: 2, grass: 4, normal: 1, Psy: 2, ground: 3,
@@ -431,12 +427,14 @@ const textureCounts: Record<string, Record<string, number>> = {
     water: 1, fire: 1, grass: 1, electric: 1, Psy: 1, normal: 1,
   }
 };
+
 const cardBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
   const fileKey = cardTextureMap[typeName] || 'normal';
   const texturePath = `/BG/BGCard/${fileKey}-texture.jpg`;
   return `url('${texturePath}')`;
 });
+
 const pokemonBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
   const fileKey = pokemonTextureMap[typeName] || 'normal';
@@ -475,10 +473,13 @@ const pokemonBackgroundStyle = computed(() => {
         'is-dark-type': primaryType === 'dark'
       }"
       :style="{ '--type-color': bgColor }"
-
       @mousedown="handlePressDown"
-      @mouseup="handlePressRelease"     @mouseleave="handlePressCancel"   @touchstart.prevent="handlePressDown"
-      @touchend="handlePressRelease"     @touchcancel="handlePressCancel"  >
+      @mouseup="handlePressRelease"
+      @mouseleave="handlePressCancel"
+      @touchstart.prevent="handlePressDown"
+      @touchend="handlePressRelease"
+      @touchcancel="handlePressCancel"
+  >
     <div class="card-inner">
       <div
           class="content-area"
@@ -571,10 +572,6 @@ const pokemonBackgroundStyle = computed(() => {
 </template>
 
 <style scoped>
-/* Seu CSS permanece exatamente o mesmo.
-  Nenhuma mudança de estilo foi necessária para o 'longpress'.
-*/
-
 :root {
   --size-symbol: 0.4rem;
   --borda-carta: 6px;
@@ -592,7 +589,6 @@ const pokemonBackgroundStyle = computed(() => {
   --size-symbol2: 1.8rem;
   --pp06: 0.6rem;
   --pp02: 0.2rem;
-
 }
 
 .pokemon-card {
@@ -605,9 +601,8 @@ const pokemonBackgroundStyle = computed(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.4); /* Corrigido '0.4Da' para '0.4' */
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.4);
   font-family: 'Segoe UI', sans-serif;
-  transition: transform 0.2s ease;
 }
 
 .card-inner {
@@ -692,7 +687,6 @@ const pokemonBackgroundStyle = computed(() => {
   padding:  0 var(--padding-detalhes) 0;
   margin: var(--margin-image) var(--margin-image);
   font-weight: 650;
-  font-size: var(--fonte-detalhes);
   font-size: var(--fonte-detalhes);
   color: #1b1b1b;
   font-family: 'Segoe UI', sans-serif;
@@ -831,7 +825,6 @@ const pokemonBackgroundStyle = computed(() => {
   left: 0;
   width: 100%;
   height: 100%;
-
   background-image: url('/Holoyoverlay.png');
   background-size: cover;
   pointer-events: none;
@@ -842,20 +835,12 @@ const pokemonBackgroundStyle = computed(() => {
   display: block;
   opacity: 0.5;
   animation: holo-shift 10s linear infinite alternate;
-
-}
-
-@keyframes holo-fade-in {
-  from { opacity: 0; }
-  to { opacity: 0.3; }
 }
 
 @keyframes holo-shift {
-  0% { background-position: 0% 0%; }
   100% { background-position: 100% 100%; }
 }
 
-/* ✅ MUDANÇA: Bloco de CSS para o 'is-dark-type' */
 .pokemon-card.is-dark-type .card-header .name,
 .pokemon-card.is-dark-type .attack-name-new,
 .pokemon-card.is-dark-type .attack-power-new,
@@ -864,8 +849,4 @@ const pokemonBackgroundStyle = computed(() => {
 .pokemon-card.is-dark-type .card-legal-info {
   color: #FFFFFF;
 }
-
-/* Nota: O .stats-bar e .hp não foram incluídos
-  para manterem suas cores originais (preto e vermelho).
-*/
 </style>
