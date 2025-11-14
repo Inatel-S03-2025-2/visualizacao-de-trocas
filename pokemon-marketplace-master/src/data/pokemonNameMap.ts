@@ -1,5 +1,4 @@
-// Arquivo gerado automaticamente. Não edite manualmente.
-
+// Gerado automaticamente. Não edite.
 export const pokemonNameMap: Record<number, string> = {
   "1": "bulbasaur",
   "2": "ivysaur",
