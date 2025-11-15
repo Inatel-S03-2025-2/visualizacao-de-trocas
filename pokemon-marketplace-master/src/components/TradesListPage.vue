@@ -17,12 +17,10 @@ interface Trade {
   cards: MockCard[]
 }
 
-// --- DADOS MOCADOS (LIMPOS!) ---
-// ✅ 2. Seus dados agora estão limpos, sem 'name'
 const allTrades = ref<Trade[]>([
   {
     id: 1,
-    username: 'Ash',
+    username: 'Moraskiller',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User1',
     cards: [
       { id: 1, pokeApiId: 6 },
@@ -32,7 +30,7 @@ const allTrades = ref<Trade[]>([
   },
   {
     id: 2,
-    username: 'Giovanni',
+    username: 'aguainsalubre',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User2',
     cards: [
       { id: 1, pokeApiId: 106 },
@@ -42,7 +40,7 @@ const allTrades = ref<Trade[]>([
   },
   {
     id: 3,
-    username: 'Brock',
+    username: 'Bertozzi',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User3',
     cards: [
       { id: 1, pokeApiId: 3 },

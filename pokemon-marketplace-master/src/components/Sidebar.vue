@@ -1,14 +1,15 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from 'vue'
-// REMOVIDO: onMounted e PokemonCard
+// 1. Importamos o novo componente de avatar
+import PokemonAvatar from '../components/PokemonAvatar.vue' // Ajuste o caminho se necessário
 
-// Usuário atual
+// Usuário atual. O 'username' será o "seed"
 const currentUser = ref({
-  username: 'USERNAME',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CurrentUser'
+  username: 'Henry.blh'
+  // REMOVIDO: a propriedade 'avatar' não é mais necessária
 })
 
-// Itens do menu
+// Itens do menu (sem mudanças)
 const menuItems = ref([
   { icon: 'home', label: 'Home', to: '/trades' },
   { icon: 'plus', label: 'Add Trade', to: '/add-trade' },
@@ -21,13 +22,14 @@ const menuItems = ref([
 
 <template>
   <aside class="sidebar">
-    <!-- Perfil do usuário -->
     <div class="user-profile">
-      <img :src="currentUser.avatar" :alt="currentUser.username" class="avatar" />
+      <PokemonAvatar
+          :seed="currentUser.username"
+          class="avatar"
+      />
       <span class="username">{{ currentUser.username }}</span>
     </div>
 
-    <!-- Menu lateral -->
     <nav class="menu">
       <router-link
           v-for="item in menuItems"
@@ -37,7 +39,6 @@ const menuItems = ref([
           active-class="active"
       >
         <span class="menu-icon">
-          <!-- (Seus ícones SVG permanecem aqui) -->
           <template v-if="item.icon === 'home'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -64,14 +65,11 @@ const menuItems = ref([
         </span>
       </router-link>
     </nav>
-
-    <!-- REMOVIDO: O <div> para o card aleatório -->
-
   </aside>
 </template>
 
 <style scoped>
-/* ESTILOS DE BASE (DESKTOP) */
+
 .sidebar {
   width: 280px;
   height: 100vh;
@@ -93,11 +91,12 @@ const menuItems = ref([
   padding: 16px;
 }
 
+/* Esta classe agora aplica-se ao componente PokemonAvatar */
 .avatar {
-  width: 64px;
-  height: 64px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: #f0f0f0; /* Fundo de fallback */
 }
 
 .username {
@@ -140,9 +139,6 @@ const menuItems = ref([
   color: #fff;
 }
 
-/* REMOVIDO: Estilos .random-pokemon */
-
-
 /* ESTILOS RESPONSIVOS (MOBILE) */
 @media (max-width: 768px) {
   .sidebar {
@@ -166,7 +162,6 @@ const menuItems = ref([
     height: 48px;
   }
 
-  /* Esconde o perfil (e o card que não existe mais) */
   .user-profile {
     display: none;
   }

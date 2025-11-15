@@ -19,7 +19,7 @@ onMounted(() => {
 
       <div class="card-wrapper">
         <h3>Pequeno (150px)</h3>
-        <PokemonCard v-if="randomId" :id="randomId+4"  />
+        <PokemonCard v-if="randomId" :id="258"  />
       </div>
 
 
@@ -30,7 +30,7 @@ onMounted(() => {
 
       <div class="card-wrapper">
         <h3>Grande (400px)</h3>
-        <PokemonCard v-if="randomId" :id="randomId+16" />
+        <PokemonCard v-if="randomId" :id="randomId" />
       </div>
 
     </div>
