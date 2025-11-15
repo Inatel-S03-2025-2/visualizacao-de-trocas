@@ -126,7 +126,7 @@ const textureCounts: Record<string, Record<string, number>> = {
     water: 5, fire: 5, grass: 6, Psy: 3, ground: 4,
     dark: 4, cinza: 1, eletric: 3,
   },
-  BGFinal: { all: 6 },
+  BGFinal: { all: 5 },
 };
 
 // 3. A Lógica de Fundo (ADAPTADA do seu Card)
