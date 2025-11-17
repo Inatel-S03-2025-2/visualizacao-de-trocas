@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PokemonCard from './PokemonCard.vue'
+// ✅ Importamos 'ref' (para o elemento) do vue
 import { ref, watch, computed } from 'vue'
 
 const props = defineProps<{
@@ -12,6 +13,60 @@ const emit = defineEmits(['close'])
 const pokemonData = ref<any>(null);
 const pokemonGenus = ref('');
 const loading = ref(true);
+const isFlipped = ref(false);
+
+// ✅ ADICIONADO: Ref para o container do flipper
+const flipperContainerRef = ref<HTMLElement | null>(null);
+
+// ✅ ADICIONADO: Constante para o ângulo máximo de inclinação
+const MAX_ROTATION = 40; // 20 graus. (90 graus faria a carta desaparecer)
+
+// ✅ MODIFICADO: Função de flip agora controla a transição
+function toggleFlip() {
+  isFlipped.value = !isFlipped.value;
+  // Garante que a transição do "flip" (lenta) seja usada
+  if (flipperContainerRef.value) {
+    flipperContainerRef.value.style.setProperty('--flipper-transition', 'transform 0.7s');
+  }
+}
+
+// ✅ ADICIONADO: Função que rastreia o mouse
+function handleMouseMove(event: MouseEvent) {
+  const el = flipperContainerRef.value;
+  if (!el) return;
+
+  const rect = el.getBoundingClientRect();
+
+  // Posição do mouse (0 a 1) relativa ao elemento
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
+
+  // Posição do mouse (-0.5 a 0.5) relativa ao centro
+  const normX = x - 0.5;
+  const normY = y - 0.5;
+
+  // Multiplica pelo ângulo máximo (normX * 2 = -1 a 1)
+  const rotateY = normX * 2 * MAX_ROTATION;
+  const rotateX = -normY * 2 * MAX_ROTATION; // Invertido para ser intuitivo
+
+  // Aplica os estilos via variáveis CSS
+  el.style.setProperty('--mouse-rotate-x', `${rotateX}deg`);
+  el.style.setProperty('--mouse-rotate-y', `${rotateY}deg`);
+  // Deixa o "track" do mouse ser super rápido (quase instantâneo)
+  el.style.setProperty('--flipper-transition', 'transform 0.05s ease-out');
+}
+
+// ✅ ADICIONADO: Função que reseta a carta quando o mouse sai
+function handleMouseLeave() {
+  const el = flipperContainerRef.value;
+  if (!el) return;
+
+  // Reseta as rotações
+  el.style.setProperty('--mouse-rotate-x', '0deg');
+  el.style.setProperty('--mouse-rotate-y', '0deg');
+  // Deixa a volta ao centro ser suave
+  el.style.setProperty('--flipper-transition', 'transform 0.5s ease-in-out');
+}
 
 const typeColors: Record<string, string> = {
   electric: '#FFD700', fire: '#FF4500', water: '#1E90FF',
@@ -48,7 +103,10 @@ const fetchModalData = async (id: number) => {
 }
 
 watch(() => props.id, (newId) => {
-  if (newId) fetchModalData(newId);
+  if (newId) {
+    fetchModalData(newId);
+    isFlipped.value = false;
+  }
 }, { immediate: true });
 
 const totalStats = computed(() => {
@@ -89,11 +147,29 @@ const formatStatName = (name: string) => {
       <div v-else-if="pokemonData" class="modal-body">
 
         <div class="modal-left">
-          <PokemonCard :id="props.id" :rarity="props.rarity" />
+
+          <div
+              class="flipper-container"
+              @click="toggleFlip"
+              ref="flipperContainerRef"
+              @mousemove="handleMouseMove"
+              @mouseleave="handleMouseLeave"
+          >
+            <div class="flipper" :class="{ 'is-flipped': isFlipped }">
+
+              <div class="card-front">
+                <PokemonCard :id="props.id" :rarity="props.rarity" />
+              </div>
+
+              <div class="card-back">
+                <img src="/BackCard.png" alt="Verso da Carta" />
+              </div>
+
+            </div>
+          </div>
         </div>
 
         <div class="modal-right">
-
           <img v-if="backgroundSymbolUrl" :src="backgroundSymbolUrl" class="modal-right-bg" />
 
           <div class="name-header">
@@ -131,9 +207,9 @@ const formatStatName = (name: string) => {
                 <div
                     class="stat-bar-inner"
                     :style="{
-                    width: `${(stat.base_stat / 255) * 100}%`,
-                    backgroundColor: primaryColor
-                  }"
+                      width: `${(stat.base_stat / 255) * 100}%`,
+                      backgroundColor: primaryColor
+                    }"
                 ></div>
               </div>
             </div>
@@ -143,7 +219,6 @@ const formatStatName = (name: string) => {
               <span class="stat-value">{{ totalStats }}</span>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -151,6 +226,8 @@ const formatStatName = (name: string) => {
 </template>
 
 <style scoped>
+/* ... (Estilos de .modal-backdrop até @media) ... */
+/* ... (Todo o seu CSS anterior permanece igual até aqui) ... */
 .modal-backdrop {
   position: fixed; top: 0; left: 0;
   width: 100vw; height: 100vh;
@@ -183,8 +260,7 @@ const formatStatName = (name: string) => {
   width: 40%;
   min-width: 300px;
   flex-shrink: 0;
-  /* ✅ Adicionado: Margem inferior para mobile, para evitar que o card 'grude' no próximo bloco */
-  margin-bottom: 0; /* Default para desktop */
+  margin-bottom: 0;
 }
 
 .modal-right {
@@ -193,8 +269,7 @@ const formatStatName = (name: string) => {
   min-width: 300px;
   font-family: 'Segoe UI', sans-serif;
   color: #333;
-  /* ✅ Adicionado: Margem superior para mobile */
-  margin-top: 0; /* Default para desktop */
+  margin-top: 0;
 }
 
 .modal-right-bg {
@@ -243,8 +318,7 @@ const formatStatName = (name: string) => {
   padding: 0.25rem 0.75rem;
   border-radius: 15px;
   color: white;
-  /* ✅ Mudança 3: Tamanho da fonte da tipagem maior */
-  font-size: 1.2rem; /* Era 0.9rem */
+  font-size: 1.2rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -266,16 +340,12 @@ const formatStatName = (name: string) => {
 }
 .stat-item {
   display: grid;
-  /* ✅ Mudança 2: Diminuir distância entre nome e valor. */
-  /* Colunas: Nome (80px), Valor (30px), Barra (resto) */
-  grid-template-columns: 80px 30px 1fr; /* Era 40px */
+  grid-template-columns: 80px 30px 1fr;
   align-items: center;
-  /* ✅ Mudança 2: Reduzir o gap no grid para aproximar os elementos */
-  gap: 0.3rem; /* Era 0.5rem */
+  gap: 0.3rem;
 }
 .stat-item.total {
-  /* Mantém o mesmo grid */
-  grid-template-columns: 80px 30px 1fr; /* Era 40px */
+  grid-template-columns: 80px 30px 1fr;
   font-weight: 900;
   margin-top: 0.5rem;
   border-top: 1px solid #eee;
@@ -283,8 +353,7 @@ const formatStatName = (name: string) => {
 }
 
 .stat-name {
-  /* ✅ Mudança 1: Peso da fonte igual ao das labels de 'Species' */
-  font-weight: 600; /* Era 600. `strong` é geralmente 700 ou 600. `400` é 'normal'. */
+  font-weight: 600;
   text-align: left;
   text-transform: capitalize;
   font-size: 1.1rem;
@@ -330,17 +399,78 @@ const formatStatName = (name: string) => {
   .modal-left {
     width: 100%;
     max-width: 350px;
-    /* ✅ Adicionado: Margem inferior para o card em telas pequenas */
     margin-bottom: 1.5rem;
   }
   .modal-right {
     width: 100%;
-    /* ✅ Adicionado: Margem superior para o bloco de stats em telas pequenas */
-    margin-top: 0; /* Começa alinhado ao card */
+    margin-top: 0;
   }
   .modal-right-bg {
     width: 150px; height: 150px;
     right: 0;
   }
 }
+
+/* --- ✅ INÍCIO: ESTILOS DO FLIP (MODIFICADOS PARA TRACKING) --- */
+
+/* 1. O container define os valores PADRÃO das variáveis */
+.flipper-container {
+  perspective: 1200px;
+  cursor: pointer;
+  max-width: 100%;
+
+  /* Valores Padrão (quando o mouse está fora) */
+  --mouse-rotate-x: 0deg;
+  --mouse-rotate-y: 0deg;
+  /* Velocidade padrão (para o flip) */
+  --flipper-transition: transform 0.7s;
+}
+
+/* 2. O flipper agora usa as variáveis de transição e rotação */
+.flipper {
+  position: relative;
+  /* A transição é controlada pelo JS (rápida no hover, lenta no flip/leave) */
+  transition: var(--flipper-transition);
+  transform-style: preserve-3d;
+  aspect-ratio: 63 / 88;
+
+  /* ✅ Esta é a magia: aplica a rotação do MOUSE */
+  transform: rotateX(var(--mouse-rotate-x)) rotateY(var(--mouse-rotate-y));
+}
+
+/* 3. Quando virado, aplica o FLIP + a rotação do MOUSE */
+.flipper.is-flipped {
+  /* O rotateY(180deg) vira a carta, e o resto aplica o "track" */
+  /* (Voltamos aos 180deg para o flip completo) */
+  transform: rotateY(180deg) rotateX(var(--mouse-rotate-x)) rotateY(var(--mouse-rotate-y));
+}
+
+.card-front,
+.card-back {
+  backface-visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateZ(0);
+}
+
+.card-front {
+  z-index: 2;
+}
+
+.card-back {
+  /* O verso precisa estar rotacionado 180° no seu eixo local */
+  transform: rotateY(180deg);
+  z-index: 1;
+}
+
+.card-back img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--bordas, 0.5rem);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+/* --- FIM: ESTILOS DO FLIP --- */
 </style>

@@ -312,6 +312,10 @@ watch(() => props.id, (newId) => {
   immediate: true
 });
 
+const hpColor = computed(() => {
+  return primaryType.value === 'fire' ? '#000000' : '#d62828'; // Preto para Fogo, Vermelho para os outros
+})
+
 // --- Lógica de Ataques (Sem mudanças) ---
 const typeColors: Record<string, string> = {
   electric: '#FFD700', fire: '#FF4500', water: '#1E90FF',
@@ -471,7 +475,11 @@ const pokemonBackgroundStyle = computed(() => {
         holo: props.rarity === 'holo',
         'is-dark-type': primaryType === 'dark'
       }"
-      :style="{ '--type-color': bgColor }"
+      :style="{
+      '--type-color': bgColor,
+      '--hp-color': hpColor
+    }"
+
       @mousedown="handlePressDown"
       @mouseup="handlePressRelease"
       @mouseleave="handlePressCancel"
@@ -655,7 +663,7 @@ const pokemonBackgroundStyle = computed(() => {
 }
 
 .hp {
-  color: #d62828;
+  color: var(--hp-color);
   font-size: var(--hp-texto);
   white-space: nowrap;
 }
