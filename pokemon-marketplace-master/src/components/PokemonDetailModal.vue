@@ -19,7 +19,7 @@ const isFlipped = ref(false);
 const flipperContainerRef = ref<HTMLElement | null>(null);
 
 // ✅ ADICIONADO: Constante para o ângulo máximo de inclinação
-const MAX_ROTATION = 40; // 20 graus. (90 graus faria a carta desaparecer)
+const MAX_ROTATION = 38; // 20 graus. (90 graus faria a carta desaparecer)
 
 // ✅ MODIFICADO: Função de flip agora controla a transição
 function toggleFlip() {
