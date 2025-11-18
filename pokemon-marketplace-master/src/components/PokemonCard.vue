@@ -56,12 +56,10 @@ const emit = defineEmits(['click']);
 const modalControls = inject('modal-controls') as {
   openModal: (data: { id: number, rarity?: 'normal' | 'holo' }) => void
 } | undefined;
-
 const pokemon = ref<PokemonData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// --- Lógica de Clique e Long Press (Sem mudanças) ---
 const longPressTimer = ref<NodeJS.Timeout | null>(null);
 const LONG_PRESS_DURATION = 700;
 const isLongPress = ref(false);
@@ -104,9 +102,7 @@ function handlePressCancel() {
   }
   isLongPress.value = false;
 }
-// --- Fim da Lógica de Interação ---
 
-// 🛑 2. Ref 'evolutionChain' removida
 const isFinalEvolution = ref(false); // Esta ref agora é controlada pelo XP
 const height = ref(0);
 const weight = ref(0);
@@ -115,7 +111,6 @@ const weaknessSymbolUrl = ref('');
 const resistanceSymbolUrl = ref('');
 const retreatCostCount = ref(1);
 
-// ... (AttackSlot, colorlessSymbolUrl, etc. sem mudanças) ...
 interface AttackSlot {
   name: string;
   type: string;
@@ -148,7 +143,6 @@ const energySymbolMap: Record<string, string> = {
   'unknown': 'https://i.imgur.com/5nNgeLM.png'
 };
 
-// --- Lógica de Fonte Responsiva (Sem mudanças) ---
 function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel: string) {
   if (!containerElement) return
   const largura = containerElement.offsetWidth
@@ -159,6 +153,7 @@ function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel
 function recalcularFontes() {
   if (pokemonCard.value) {
     const el = pokemonCard.value;
+    const largura = el.offsetWidth;
     reescaleText(el, 0.0133, "borda-carta");
     reescaleText(el, 0.0712, "size-symbol");
     reescaleText(el, 0.0680, "hp-texto");
@@ -173,8 +168,10 @@ function recalcularFontes() {
     reescaleText(el, 0.065, "size-symbol2");
     reescaleText(el, 0.030, "pp06");
     reescaleText(el, 0.007, "pp02");
-    const novaFonte = reescaleText(el, 0.03, "fonte-detalhes");
-    fonteDetalhes.value = novaFonte;
+    reescaleText(el, 0.0301, "fonte-detalhes");
+
+
+
   }
 }
 watch(pokemon, async (novoPokemon) => {
@@ -184,23 +181,7 @@ watch(pokemon, async (novoPokemon) => {
     recalcularFontes();
   }
 }, { immediate: true });
-const paddingAjustado = computed(() => {
-  if (!pokemonCard.value) return 0;
-  if (fonteDetalhes.value !== null && fonteDetalhes.value <= 9) {
-    return reescaleText(pokemonCard.value, 0.014, 'paddin-detalhes');
-  } else {
-    return reescaleText(pokemonCard.value, 0, 'paddin-detalhes');
-  }
-});
-watch(paddingAjustado, (padding) => {
-  if (pokemonCard.value) {
-    pokemonCard.value.style.setProperty('--padding-detalhes', `${padding}px`);
-  }
-});
-// --- Fim da Lógica de Fonte ---
 
-
-// --- Lógica de Fetch (Sem mudanças) ---
 const fetchPokemon = async (id: number) => {
   loading.value = true
   error.value = null
@@ -250,9 +231,6 @@ const fetchDamageRelations = async (pokemonData: PokemonData) => {
   }
 };
 
-// 🛑 3. Função 'fetchEvolutionChain' REMOVIDA
-
-// ✅ 4. Nova função para buscar dados secundários (Genus) e checar XP
 async function fetchSecondaryData(pokemonData: PokemonData) {
   // 1. Busca o Genus (como antes)
   try {
@@ -282,7 +260,6 @@ async function fetchSecondaryData(pokemonData: PokemonData) {
   }
 }
 
-// ✅ 5. Watcher de 'pokemon' ATUALIZADO
 watch(pokemon, (newPokemon) => {
   if (newPokemon) {
     // Chama a nova função de dados secundários
@@ -294,7 +271,6 @@ watch(pokemon, (newPokemon) => {
   }
 });
 
-// --- Hooks de Ciclo de Vida (Sem mudanças) ---
 onMounted(() => {
   recalcularFontes()
   window.addEventListener('resize', recalcularFontes)
@@ -311,6 +287,10 @@ watch(() => props.id, (newId) => {
 }, {
   immediate: true
 });
+
+const hpColor = computed(() => {
+  return primaryType.value === 'fire' ? '#000000' : '#d62828'; // Preto para Fogo, Vermelho para os outros
+})
 
 // --- Lógica de Ataques (Sem mudanças) ---
 const typeColors: Record<string, string> = {
@@ -392,8 +372,6 @@ const processAttackData = async (pokemonData: PokemonData) => {
   }
 };
 
-// --- Lógica de Textura (Backgrounds) ---
-// (Esta parte não muda, pois ela JÁ LÊ o 'isFinalEvolution.value')
 const cardTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'fogo', 'grass': 'grass', 'electric': 'eletric',
   'psychic': 'Psy', 'dark': 'dark', 'dragon': 'dragon', 'fighting': 'ground',
@@ -401,7 +379,6 @@ const cardTextureMap: Record<string, string> = {
   'poison': 'Psy', 'bug': 'grass', 'fairy': 'Psy', 'ghost': 'Psy', 'ice': 'water',
   'flying': 'normal', 'unknown': 'normal',
 };
-
 const pokemonTextureMap: Record<string, string> = {
   'water': 'water', 'fire': 'fire', 'grass': 'grass', 'electric': 'electric',
   'psychic': 'Psy', 'dark': 'dark', 'dragon': 'Psy', 'fighting': 'ground',
@@ -409,7 +386,6 @@ const pokemonTextureMap: Record<string, string> = {
   'poison': 'dark', 'bug': 'grass', 'fairy': 'Psy', 'ghost': 'dark',
   'ice': 'ice', 'flying': 'grass', 'unknown': 'normal',
 };
-
 const textureCounts: Record<string, Record<string, number>> = {
   BGNormal: {
     water: 5, fire: 5, grass: 6, Psy: 3, ground: 4,
@@ -420,15 +396,12 @@ const textureCounts: Record<string, Record<string, number>> = {
     water: 1, fire: 1, grass: 1, electric: 1, Psy: 1, normal: 1,
   }
 };
-
 const cardBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
   const fileKey = cardTextureMap[typeName] || 'normal';
   const texturePath = `/BG/BGCard/${fileKey}-texture.jpg`;
   return `url('${texturePath}')`;
 });
-
-// Esta computed property agora usa a nova lógica de 'isFinalEvolution'
 const pokemonBackgroundStyle = computed(() => {
   const typeName = primaryType.value;
   const fileKey = pokemonTextureMap[typeName] || 'normal';
@@ -471,7 +444,11 @@ const pokemonBackgroundStyle = computed(() => {
         holo: props.rarity === 'holo',
         'is-dark-type': primaryType === 'dark'
       }"
-      :style="{ '--type-color': bgColor }"
+      :style="{
+      '--type-color': bgColor,
+      '--hp-color': hpColor
+    }"
+
       @mousedown="handlePressDown"
       @mouseup="handlePressRelease"
       @mouseleave="handlePressCancel"
@@ -655,7 +632,7 @@ const pokemonBackgroundStyle = computed(() => {
 }
 
 .hp {
-  color: #d62828;
+  color: var(--hp-color);
   font-size: var(--hp-texto);
   white-space: nowrap;
 }
@@ -683,7 +660,6 @@ const pokemonBackgroundStyle = computed(() => {
 .stats-bar {
   background-color: #fbc74a;
   text-align: center;
-  padding:  0 var(--padding-detalhes) 0;
   margin: var(--margin-image) var(--margin-image);
   font-weight: 650;
   font-size: var(--fonte-detalhes);
@@ -691,7 +667,7 @@ const pokemonBackgroundStyle = computed(() => {
   font-family: 'Segoe UI', sans-serif;
   box-shadow: inset 0 0 0.3rem rgba(44, 25, 25, 0.1);
   white-space: nowrap;
-  overflow: hidden;
+  //overflow: hidden;
   line-height: var(--peso-linha);
 }
 
