@@ -16,7 +16,7 @@
           <input
               type="text"
               v-model="searchQuery"
-              placeholder="BUSCA Pokémons"
+              placeholder="Busca Pokémons"
               class="search-input"
           />
           <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -70,7 +70,12 @@
     </section>
 
     <h2 class="section-subtitle main-list-title">Todos os Pokémons</h2>
-    <div class="card-display-area">
+
+    <div v-if="allCards.length === 0" class="empty-list-message">
+      <p>Carregando Pokémons...</p>
+    </div>
+
+    <div v-else class="card-display-area">
 
       <div v-if="sortedAndFilteredCards.length === 0" class="empty-list-message">
         <p>Nenhum card encontrado com o termo de busca.</p>
@@ -135,9 +140,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import PokemonDetailModal from './PokemonDetailModal.vue';
 import PokemonCard from './PokemonCard.vue';
+// ✅ IMPORTAÇÃO CORRETA DO ARQUIVO DE DADOS
+import { pokemonNameMap } from '../data/pokemonNameMap';
 
 // DADOS DE ESTADO
 const pageTitle = ref("Wishlist");
@@ -155,49 +162,38 @@ const currentPage = ref(1);
 const itemsPerPage = 12;
 
 const wishlist = ref([]);
+const allCards = ref([]);
 
-// --- MOCK DATA (151 POKÉMONS) ---
-const POKEMON_NAMES_MOCK = [
-  "Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon", "Charizard",
-  "Squirtle", "Wartortle", "Blastoise", "Caterpie", "Metapod", "Butterfree",
-  "Weedle", "Kakuna", "Beedrill", "Pidgey", "Pidgeotto", "Pidgeot", "Rattata",
-  "Raticate", "Spearow", "Fearow", "Ekans", "Arbok", "Pikachu", "Raichu",
-  "Sandshrew", "Sandslash", "Nidoran♀", "Nidorina", "Nidoqueen", "Nidoran♂",
-  "Nidorino", "Nidoking", "Clefairy", "Clefable", "Vulpix", "Ninetales",
-  "Jigglypuff", "Wigglytuff", "Zubat", "Golbat", "Oddish", "Gloom", "Vileplume",
-  "Paras", "Parasect", "Venonat", "Venomoth", "Diglett", "Dugtrio", "Meowth",
-  "Persian", "Psyduck", "Golduck", "Mankey", "Primeape", "Growlithe", "Arcanine",
-  "Poliwag", "Poliwhirl", "Poliwrath", "Abra", "Kadabra", "Alakazam", "Machop",
-  "Machoke", "Machamp", "Bellsprout", "Weepinbell", "Victreebel", "Tentacool",
-  "Tentacruel", "Geodude", "Graveler", "Golem", "Ponyta", "Rapidash", "Slowpoke",
-  "Slowbro", "Magnemite", "Magneton", "Farfetch'd", "Doduo", "Dodrio", "Seel",
-  "Dewgong", "Grimer", "Muk", "Shellder", "Cloyster", "Gastly", "Haunter",
-  "Gengar", "Onix", "Drowzee", "Hypno", "Krabby", "Kingler", "Voltorb",
-  "Electrode", "Exeggcute", "Exeggutor", "Cubone", "Marowak", "Hitmonlee",
-  "Hitmonchan", "Lickitung", "Koffing", "Weezing", "Rhyhorn", "Rhydon",
-  "Chansey", "Tangela", "Kangaskhan", "Horsea", "Seadra", "Goldeen", "Seaking",
-  "Staryu", "Starmie", "Mr. Mime", "Scyther", "Jynx", "Electabuzz", "Magmar",
-  "Pinsir", "Tauros", "Magikarp", "Gyarados", "Lapras", "Ditto", "Eevee",
-  "Vaporeon", "Jolteon", "Flareon", "Porygon", "Omanyte", "Omastar", "Kabuto",
-  "Kabutops", "Aerodactyl", "Snorlax", "Articuno", "Zapdos", "Moltres",
-  "Dratini", "Dragonair", "Dragonite", "Mewtwo", "Mew"
-];
+// --- GERAÇÃO DOS CARDS VIA MAPA (ON MOUNTED) ---
+onMounted(() => {
+  if (pokemonNameMap) {
+    // Converte o Objeto { "1": "bulbasaur", ... } em Array de Objetos
+    const cardsArray = Object.entries(pokemonNameMap).map(([idStr, name]) => {
+      const id = Number(idStr);
+      // Formata o nome (Primeira letra maiúscula)
+      const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
 
-const allCards = ref(POKEMON_NAMES_MOCK.map((name, index) => {
-  const pokeId = index + 1;
-  return {
-    id: pokeId,
-    pokeId: pokeId,
-    name: name,
-    rarity: "common",
-    details: {
-      hp: (80 + index),
-      attack: (50 + index),
-      type: 'Normal',
-      description: `Um Pokémon chamado ${name}.`
-    }
-  };
-}));
+      return {
+        id: id,
+        pokeId: id,
+        name: formattedName,
+        rarity: "common",
+        // Mock de detalhes para ordenação (já que não temos esses dados no map simples)
+        details: {
+          hp: (50 + (id % 100)),
+          attack: (40 + (id % 80)),
+          type: 'Normal',
+          description: `Um Pokémon chamado ${formattedName}.`
+        }
+      };
+    });
+
+    // Ordena por ID (1, 2, 3...) e define a lista
+    allCards.value = cardsArray.sort((a, b) => a.id - b.id);
+  } else {
+    console.error("Erro: pokemonNameMap não carregou.");
+  }
+});
 
 // --- FUNÇÕES DE PAGINAÇÃO ---
 const totalPages = computed(() => {
@@ -238,12 +234,15 @@ const toggleFavorite = (card) => {
 // --- FILTRO E ORDENAÇÃO ---
 const sortedAndFilteredCards = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
+
+  // Filtro
   let list = allCards.value.filter(item => {
     if (!query) return true;
     return item.name.toLowerCase().includes(query) ||
         String(item.pokeId).includes(query);
   });
 
+  // Ordenação
   const sortFn = (a, b) => {
     const key = currentSortKey.value;
     const direction = currentSortDirection.value === 'asc' ? 1 : -1;
@@ -264,6 +263,7 @@ const sortedAndFilteredCards = computed(() => {
   return list.sort(sortFn);
 });
 
+// FUNÇÕES DE AÇÃO
 const openModal = (id, rarity) => {
   selectedPokemonId.value = id;
   selectedPokemonRarity.value = rarity;
@@ -347,7 +347,7 @@ const sortItems = (key) => {
   display: flex;
   gap: 15px;
   overflow-x: auto;
-  padding-bottom: 15px; /* Espaço para scrollbar */
+  padding-bottom: 15px;
   scrollbar-width: thin;
   scrollbar-color: #ff69b4 #fdf2f8;
 }
@@ -357,10 +357,9 @@ const sortItems = (key) => {
 
 /* ✅ CORREÇÃO DO TAMANHO DOS CARDS NOS FAVORITOS */
 .favorites-scroll-container .card-wrapper {
-  /* Força o card a ter 150px e não esticar nem encolher */
   width: 150px !important;
   min-width: 150px !important;
-  flex: 0 0 150px; /* Impede o flexbox de alterar o tamanho */
+  flex: 0 0 150px;
 }
 
 .no-favorites-message {
