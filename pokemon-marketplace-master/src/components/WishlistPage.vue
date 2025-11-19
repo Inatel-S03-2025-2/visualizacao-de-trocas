@@ -2,7 +2,6 @@
   <div class="wishlist-page">
 
     <header class="wishlist-header">
-
       <router-link to="/" class="icon-button back-button" aria-label="Voltar à Home">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -13,12 +12,10 @@
       <h1 class="page-title">{{ pageTitle }}</h1>
 
       <div class="header-actions">
-
         <div class="search-container">
           <input
               type="text"
               v-model="searchQuery"
-              @input="filterItems"
               placeholder="BUSCA Pokémons"
               class="search-input"
           />
@@ -28,360 +25,411 @@
           </svg>
         </div>
 
-        <button @click="sortItems('name', 'asc')" class="icon-button sort-button" aria-label="Ordenar A-Z">
-          A
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 5px;">
-            <line x1="12" y1="19" x2="12" y2="5"></line>
-            <polyline points="5 12 12 5 19 12"></polyline>
-          </svg>
-          Z
+        <button @click="sortItems('id')" class="icon-button sort-button" aria-label="Ordenar por ID">
+          ID
+          <span v-if="currentSortKey === 'id'" class="sort-indicator">{{ currentSortDirection === 'asc' ? '↑' : '↓' }}</span>
+        </button>
+        <button @click="sortItems('name')" class="icon-button sort-button" aria-label="Ordenar por Nome">
+          A-Z
+          <span v-if="currentSortKey === 'name'" class="sort-indicator">{{ currentSortDirection === 'asc' ? '↑' : '↓' }}</span>
         </button>
       </div>
     </header>
 
-    <div class="wishlist-container">
+    <section class="favorites-section">
+      <h2 class="section-subtitle">Meus Favoritos <span class="count-badge">{{ wishlist.length }}</span></h2>
+
+      <div v-if="wishlist.length > 0" class="favorites-scroll-container">
+        <div
+            v-for="item in wishlist"
+            :key="'fav-' + item.id"
+            class="card-wrapper small is-favorited"
+            @click="openModal(item.pokeId, item.rarity)"
+            title="Clique para ver os detalhes"
+        >
+          <button
+              class="favorite-button favorited"
+              @click.stop="toggleFavorite(item)"
+          >
+            ❤️
+          </button>
+
+          <PokemonCard :id="item.pokeId" :rarity="item.rarity" />
+
+          <div class="card-details-overlay">
+            <h3 class="card-name-overlay">
+              <span class="id-badge">#{{ item.pokeId }}</span> {{ item.name }}
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="no-favorites-message">
+        <p>Você ainda não possui nenhuma carta favoritada.</p>
+      </div>
+    </section>
+
+    <h2 class="section-subtitle main-list-title">Todos os Pokémons</h2>
+    <div class="card-display-area">
 
       <div v-if="sortedAndFilteredCards.length === 0" class="empty-list-message">
         <p>Nenhum card encontrado com o termo de busca.</p>
       </div>
 
       <div
-          v-for="item in sortedAndFilteredCards"
+          v-for="item in paginatedCards"
           :key="item.id"
-          class="wishlist-card"
+          class="card-wrapper small"
           :class="{ 'is-favorited': isFavorite(item.id) }"
-          @click="openModal(item)"
+
+          @click="openModal(item.pokeId, item.rarity)"
           title="Clique para ver os detalhes"
       >
         <button
             class="favorite-button"
             :class="{ favorited: isFavorite(item.id) }"
             @click.stop="toggleFavorite(item)"
-            :aria-label="isFavorite(item.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'"
         >
           {{ isFavorite(item.id) ? '❤️' : '♡' }}
         </button>
 
-        <div class="card-image-wrapper">
-          <img :src="item.imageUrl" :alt="item.name" class="card-image" />
-        </div>
+        <PokemonCard :id="item.pokeId" :rarity="item.rarity" />
 
-        <div class="card-details">
-          <h2 class="card-name">{{ item.name }}</h2>
-          <p class="card-stats">
-            Vida: {{ item.details.hp }} | Dano: {{ item.details.attack }}
-          </p>
+        <div class="card-details-overlay">
+          <h3 class="card-name-overlay">
+            <span class="id-badge">#{{ item.pokeId }}</span> {{ item.name }}
+          </h3>
         </div>
       </div>
     </div>
 
-    <WishlistItemModal
-        v-if="isModalOpen"
-        :item="selectedItem"
+    <div v-if="sortedAndFilteredCards.length > itemsPerPage" class="pagination-controls">
+      <button
+          @click="prevPage"
+          :disabled="currentPage === 1"
+          class="pagination-button"
+      >
+        Anterior
+      </button>
+
+      <span class="page-info">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
+
+      <button
+          @click="nextPage"
+          :disabled="currentPage === totalPages"
+          class="pagination-button"
+      >
+        Próxima
+      </button>
+    </div>
+
+    <PokemonDetailModal
+        v-if="isModalOpen && selectedPokemonId !== null"
+        :id="selectedPokemonId"
+        :rarity="selectedPokemonRarity"
         @close="isModalOpen = false"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import WishlistItemModal from './WishlistItemModal.vue';
+import { ref, computed, watch } from 'vue';
+import PokemonDetailModal from './PokemonDetailModal.vue';
+import PokemonCard from './PokemonCard.vue';
 
 // DADOS DE ESTADO
-const pageTitle = ref("Todos os Cards"); // Título ajustado para refletir todos os cards
+const pageTitle = ref("Wishlist");
 
 const isModalOpen = ref(false);
-const selectedItem = ref(null);
-const searchQuery = ref('');
-const currentSortKey = ref('name'); // Novo: Chave de ordenação
-const currentSortDirection = ref('asc'); // Novo: Direção de ordenação
+const selectedPokemonId = ref(null);
+const selectedPokemonRarity = ref(null);
 
-// Lista de Desejos (mantida como array de objetos para fácil acesso a dados)
+const searchQuery = ref('');
+const currentSortKey = ref('id');
+const currentSortDirection = ref('asc');
+
+// --- PAGINAÇÃO ---
+const currentPage = ref(1);
+const itemsPerPage = 12;
+
 const wishlist = ref([]);
 
-// Base de Dados de TODOS os Cards
-const allCards = ref([
-  {
-    id: 10,
-    name: "Pikachu",
-    imageUrl: "https://images.pokemontcg.io/base1/58_hires.png",
-    details: { hp: 80, attack: 55, type: 'Electric', description: 'Um rato elétrico fofo.' }
-  },
-  {
-    id: 20,
-    name: "Charmander",
-    imageUrl: "https://images.pokemontcg.io/base1/46_hires.png",
-    details: { hp: 70, attack: 52, type: 'Fire', description: 'Um lagarto de fogo.' }
-  },
-  {
-    id: 30,
-    name: "Squirtle",
-    imageUrl: "https://images.pokemontcg.io/base1/63_hires.png",
-    details: { hp: 90, attack: 48, type: 'Water', description: 'Uma tartaruga aquática.' }
-  },
-  {
-    id: 40,
-    name: "Bulbasaur",
-    imageUrl: "https://images.pokemontcg.io/base1/44_hires.png",
-    details: { hp: 60, attack: 49, type: 'Grass', description: 'Um réptil com uma semente nas costas.' }
-  },
-  {
-    id: 50,
-    name: "Metapod",
-    // CORRIGIDO: Jigglypuff (Base Set #54) - Estava com URL incorreta.
-    imageUrl: "https://images.pokemontcg.io/base1/54_hires.png",
-    details: { hp: 100, attack: 5, type: 'Bug', description: 'Pokémon do tipo Inseto, em forma de casulo verde, conhecido por sua casca dura e por permanecer imóvel para se preparar para a evolução' }
-  }
-]);
+// --- MOCK DATA (151 POKÉMONS) ---
+const POKEMON_NAMES_MOCK = [
+  "Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon", "Charizard",
+  "Squirtle", "Wartortle", "Blastoise", "Caterpie", "Metapod", "Butterfree",
+  "Weedle", "Kakuna", "Beedrill", "Pidgey", "Pidgeotto", "Pidgeot", "Rattata",
+  "Raticate", "Spearow", "Fearow", "Ekans", "Arbok", "Pikachu", "Raichu",
+  "Sandshrew", "Sandslash", "Nidoran♀", "Nidorina", "Nidoqueen", "Nidoran♂",
+  "Nidorino", "Nidoking", "Clefairy", "Clefable", "Vulpix", "Ninetales",
+  "Jigglypuff", "Wigglytuff", "Zubat", "Golbat", "Oddish", "Gloom", "Vileplume",
+  "Paras", "Parasect", "Venonat", "Venomoth", "Diglett", "Dugtrio", "Meowth",
+  "Persian", "Psyduck", "Golduck", "Mankey", "Primeape", "Growlithe", "Arcanine",
+  "Poliwag", "Poliwhirl", "Poliwrath", "Abra", "Kadabra", "Alakazam", "Machop",
+  "Machoke", "Machamp", "Bellsprout", "Weepinbell", "Victreebel", "Tentacool",
+  "Tentacruel", "Geodude", "Graveler", "Golem", "Ponyta", "Rapidash", "Slowpoke",
+  "Slowbro", "Magnemite", "Magneton", "Farfetch'd", "Doduo", "Dodrio", "Seel",
+  "Dewgong", "Grimer", "Muk", "Shellder", "Cloyster", "Gastly", "Haunter",
+  "Gengar", "Onix", "Drowzee", "Hypno", "Krabby", "Kingler", "Voltorb",
+  "Electrode", "Exeggcute", "Exeggutor", "Cubone", "Marowak", "Hitmonlee",
+  "Hitmonchan", "Lickitung", "Koffing", "Weezing", "Rhyhorn", "Rhydon",
+  "Chansey", "Tangela", "Kangaskhan", "Horsea", "Seadra", "Goldeen", "Seaking",
+  "Staryu", "Starmie", "Mr. Mime", "Scyther", "Jynx", "Electabuzz", "Magmar",
+  "Pinsir", "Tauros", "Magikarp", "Gyarados", "Lapras", "Ditto", "Eevee",
+  "Vaporeon", "Jolteon", "Flareon", "Porygon", "Omanyte", "Omastar", "Kabuto",
+  "Kabutops", "Aerodactyl", "Snorlax", "Articuno", "Zapdos", "Moltres",
+  "Dratini", "Dragonair", "Dragonite", "Mewtwo", "Mew"
+];
 
+const allCards = ref(POKEMON_NAMES_MOCK.map((name, index) => {
+  const pokeId = index + 1;
+  return {
+    id: pokeId,
+    pokeId: pokeId,
+    name: name,
+    rarity: "common",
+    details: {
+      hp: (80 + index),
+      attack: (50 + index),
+      type: 'Normal',
+      description: `Um Pokémon chamado ${name}.`
+    }
+  };
+}));
 
-// LÓGICA DE FAVORITOS
+// --- FUNÇÕES DE PAGINAÇÃO ---
+const totalPages = computed(() => {
+  return Math.ceil(sortedAndFilteredCards.value.length / itemsPerPage);
+});
+
+const paginatedCards = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return sortedAndFilteredCards.value.slice(start, end);
+});
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--;
+};
+
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
+
+// --- LÓGICA DE FAVORITOS ---
 const isFavorite = (id) => {
   return wishlist.value.some(item => item.id === id);
 };
 
 const toggleFavorite = (card) => {
   if (isFavorite(card.id)) {
-    // Remover
     wishlist.value = wishlist.value.filter(item => item.id !== card.id);
   } else {
-    // Adicionar
     wishlist.value.push(card);
   }
 };
 
-// LÓGICA PRINCIPAL: FILTRAGEM + ORDENAÇÃO + DESTAQUE DE FAVORITOS
+// --- FILTRO E ORDENAÇÃO ---
 const sortedAndFilteredCards = computed(() => {
-  // 1. Aplicar Busca (Filtro)
   const query = searchQuery.value.toLowerCase().trim();
   let list = allCards.value.filter(item => {
     if (!query) return true;
     return item.name.toLowerCase().includes(query) ||
-        item.details.description.toLowerCase().includes(query);
+        String(item.pokeId).includes(query);
   });
 
-  // 2. Criar sub-listas de favoritos/não-favoritos
-  const favorites = [];
-  const nonFavorites = [];
-
-  list.forEach(item => {
-    if (isFavorite(item.id)) {
-      favorites.push(item);
-    } else {
-      nonFavorites.push(item);
-    }
-  });
-
-  // 3. Função de Ordenação (mantida, mas não está ligada ao template simplificado)
   const sortFn = (a, b) => {
-    let valA = a.name.toLowerCase();
-    let valB = b.name.toLowerCase();
+    const key = currentSortKey.value;
+    const direction = currentSortDirection.value === 'asc' ? 1 : -1;
 
-    if (valA < valB) return currentSortDirection.value === 'asc' ? -1 : 1;
-    if (valA > valB) return currentSortDirection.value === 'asc' ? 1 : -1;
+    if (key === 'id') {
+      return (a.pokeId - b.pokeId) * direction;
+    }
+    else if (key === 'name') {
+      let valA = a.name.toLowerCase();
+      let valB = b.name.toLowerCase();
+      if (valA < valB) return -1 * direction;
+      if (valA > valB) return 1 * direction;
+      return 0;
+    }
     return 0;
   };
 
-  favorites.sort(sortFn);
-  nonFavorites.sort(sortFn);
-
-  // 4. Juntar: Favoritos (topo) + Não-Favoritos
-  return [...favorites, ...nonFavorites];
+  return list.sort(sortFn);
 });
 
-
-// FUNÇÕES
-const openModal = (item) => {
-  selectedItem.value = item;
+const openModal = (id, rarity) => {
+  selectedPokemonId.value = id;
+  selectedPokemonRarity.value = rarity;
   isModalOpen.value = true;
 };
 
-const filterItems = () => {
-  // Reatividade garantida pelo computed
-};
+const filterItems = () => {};
 
-const sortItems = (key, direction) => {
-  // A lógica foi mantida caso você queira reintroduzir o botão de ordenação.
-  currentSortKey.value = key;
-  currentSortDirection.value = currentSortDirection.value === 'asc' ? 'desc' : 'asc';
+const sortItems = (key) => {
+  if (currentSortKey.value === key) {
+    currentSortDirection.value = currentSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortKey.value = key;
+    currentSortDirection.value = 'asc';
+  }
 };
 </script>
 
 <style scoped>
-/* ESTILOS DE LAYOUT, BUSCA E CARDS */
+/* ESTILOS GERAIS */
 .wishlist-page { max-width: 1200px; margin: 0 auto; padding: 20px; font-family: sans-serif; }
 
 .wishlist-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 15px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px;
 }
 
 .page-title {
-  flex-grow: 1;
-  text-align: center;
-  color: #333;
-  font-size: 2em;
-  margin: 0;
+  flex-grow: 1; text-align: left; color: #333; font-size: 2em;
+  margin: 0 20px 0 20px;
 }
 
-.header-actions {
-  display: flex;
-  gap: 15px;
-  min-width: 250px;
-  justify-content: flex-end;
-  align-items: center;
-}
+.header-actions { display: flex; gap: 15px; flex-grow: 1; justify-content: flex-end; align-items: center; }
 
-/* Estilos de Busca/Botões */
-.search-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 200px;
-}
-
-.search-input {
-  padding: 8px 12px 8px 35px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.9em;
-  width: 100%;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  color: #999;
-}
+.search-container { position: relative; display: flex; align-items: center; min-width: 400px; }
+.search-input { padding: 8px 12px 8px 35px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; width: 100%; }
+.search-icon { position: absolute; left: 10px; color: #999; }
 
 .icon-button {
-  background: none;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
+  background: none; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px;
+  cursor: pointer; display: flex; align-items: center; font-size: 0.9em;
+  text-decoration: none; color: #333; transition: background-color 0.2s;
+}
+.icon-button:hover { background-color: #f0f0f0; }
+.icon-button svg { margin-right: 5px; }
+.back-button { margin-right: auto; margin-left: 0; }
+.sort-button { gap: 5px; }
+.sort-indicator { margin-left: 5px; font-weight: bold; color: #007bff; }
+
+/* ✅ ESTILOS DA SEÇÃO DE FAVORITOS */
+.favorites-section {
+  background-color: #fdf2f8;
+  border: 1px solid #fce7f3;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 40px;
+  min-height: 100px;
+}
+
+.section-subtitle {
+  font-size: 1.5em;
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 15px;
   display: flex;
   align-items: center;
-  font-size: 0.9em;
-  text-decoration: none;
-  color: #333;
-  transition: background-color 0.2s;
+  gap: 10px;
 }
 
-.icon-button:hover {
-  background-color: #f0f0f0;
-}
-
-.icon-button svg {
-  margin-right: 5px;
-}
-
-.back-button {
-  margin-right: auto;
-  margin-left: 0;
-}
-
-.sort-button {
-  gap: 5px;
-}
-
-.sort-button svg {
-  margin-right: 0;
-}
-
-/* ESTILOS DOS CARDS (Visualização da Main) */
-.wishlist-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-}
-.empty-list-message {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 50px;
-  color: #999;
-}
-.wishlist-card {
-  position: relative;
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
+.count-badge {
+  background-color: #ff69b4;
+  color: white;
+  font-size: 0.6em;
+  padding: 2px 8px;
   border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  text-align: center;
-  padding-bottom: 15px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-/* Destaque visual para cards favoritados */
-.wishlist-card.is-favorited {
-  border: 2px solid #ff69b4; /* Borda rosa para destaque */
-  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+  vertical-align: middle;
 }
 
-.wishlist-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+/* Container de rolagem horizontal */
+.favorites-scroll-container {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding-bottom: 15px; /* Espaço para scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #ff69b4 #fdf2f8;
 }
 
-.favorite-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #ccc;
-  color: #ff69b4;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  line-height: 1;
-  font-size: 1.5em;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.favorites-scroll-container::-webkit-scrollbar { height: 8px; }
+.favorites-scroll-container::-webkit-scrollbar-thumb { background-color: #ff69b4; border-radius: 4px; }
+
+/* ✅ CORREÇÃO DO TAMANHO DOS CARDS NOS FAVORITOS */
+.favorites-scroll-container .card-wrapper {
+  /* Força o card a ter 150px e não esticar nem encolher */
+  width: 150px !important;
+  min-width: 150px !important;
+  flex: 0 0 150px; /* Impede o flexbox de alterar o tamanho */
+}
+
+.no-favorites-message {
+  text-align: center; color: #888; font-style: italic;
+  padding: 30px; border: 1px dashed #e0e0e0; border-radius: 8px; background-color: white;
+}
+
+.main-list-title {
+  margin-bottom: 20px; padding-left: 5px; border-left: 5px solid #333; line-height: 1;
+}
+
+/* GRID DA LISTA PRINCIPAL */
+.card-display-area {
+  display: grid;
+  /* Tamanho pequeno (150px) para a lista principal */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+/* ESTILOS DO CARD (Padrão Small) */
+.card-wrapper {
+  position: relative; background: #fff; border-radius: 8px; border: 1px solid #ddd;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+  gap: 5px; cursor: pointer; padding: 5px;
+  perspective: 1000px; transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%; height: auto;
+}
+
+.card-wrapper :deep(.pokemon-card) {
+  width: 100% !important; height: auto !important; max-width: 100%;
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  transform-style: preserve-3d;
+}
+
+.card-wrapper:hover :deep(.pokemon-card) {
+  transform: translateY(-0.3rem) scale(1.05);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
   z-index: 10;
 }
 
-.favorite-button.favorited {
-  background-color: #ff69b4;
-  color: white;
-  border-color: #ff69b4;
+.card-wrapper.is-favorited {
+  border: 2px solid #ff69b4;
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
 }
 
-.card-image-wrapper {
-  width: 100%;
-  height: 200px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
+.favorite-button {
+  position: absolute; top: 5px; right: 5px; z-index: 30;
+  width: 25px; height: 25px; font-size: 1.2em;
+  background: rgba(255, 255, 255, 0.8); border: 1px solid #ccc;
+  color: #ff69b4; border-radius: 50%; cursor: pointer;
+  transition: background-color 0.2s;
 }
+.favorite-button.favorited { background-color: #ff69b4; color: white; border-color: #ff69b4; }
 
-.card-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+.card-details-overlay { text-align: center; padding: 5px 0 0; border-top: 1px solid #eee; }
+.card-name-overlay { margin: 3px 0; font-size: 0.9em; color: #333; }
+.id-badge { color: #888; font-size: 0.8em; margin-right: 3px; }
+.empty-list-message { grid-column: 1 / -1; text-align: center; padding: 50px; color: #999; }
 
-.card-details {
-  padding: 0 10px;
+/* ESTILOS DE PAGINAÇÃO */
+.pagination-controls {
+  display: flex; justify-content: center; align-items: center;
+  gap: 20px; margin-top: 40px; padding: 20px 0; border-top: 1px solid #eee;
 }
-
-.card-name {
-  margin: 10px 0 5px 0;
-  font-size: 1.1em;
-  color: #333;
+.pagination-button {
+  padding: 8px 16px; background-color: #333; color: white; border: none;
+  border-radius: 4px; cursor: pointer; transition: opacity 0.2s;
 }
-
-.card-stats {
-  margin: 0;
-  font-size: 0.9em;
-  color: #555;
-  font-weight: 500;
-}
+.pagination-button:disabled { background-color: #ccc; cursor: not-allowed; }
+.pagination-button:hover:not(:disabled) { background-color: #555; }
+.page-info { font-weight: bold; color: #555; }
 </style>
