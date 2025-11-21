@@ -121,6 +121,8 @@ const colorlessSymbolUrl = computed(() => energySymbolMap['normal']);
 const pokemonCard = ref<HTMLElement | null>(null)
 const fonteDetalhes = ref<number | null>(null);
 
+let resizeObserver: ResizeObserver | null = null;
+
 const energySymbolMap: Record<string, string> = {
   'water': 'https://i.imgur.com/uGgzRK6.png',
   'fire': 'https://i.imgur.com/6Dus51N.png',
@@ -153,7 +155,9 @@ function reescaleText(containerElement: HTMLElement, fator: number, nomeVariavel
 function recalcularFontes() {
   if (pokemonCard.value) {
     const el = pokemonCard.value;
-    const largura = el.offsetWidth;
+    // Se a largura for 0 (ex: elemento oculto), não faz nada para evitar erros
+    if (el.offsetWidth === 0) return;
+
     reescaleText(el, 0.0133, "borda-carta");
     reescaleText(el, 0.0712, "size-symbol");
     reescaleText(el, 0.0680, "hp-texto");
@@ -169,18 +173,29 @@ function recalcularFontes() {
     reescaleText(el, 0.030, "pp06");
     reescaleText(el, 0.007, "pp02");
     reescaleText(el, 0.0301, "fonte-detalhes");
-
-
-
   }
 }
+
 watch(pokemon, async (novoPokemon) => {
   if (novoPokemon) {
     await nextTick();
-    await nextTick();
+    // Tenta reconectar o observer se o elemento DOM foi recriado (pelo v-if)
+    setupObserver();
     recalcularFontes();
   }
-}, { immediate: true });
+});
+
+const setupObserver = () => {
+  if (pokemonCard.value && !resizeObserver) {
+    resizeObserver = new ResizeObserver(() => {
+      // window.requestAnimationFrame evita erro de "Loop limit exceeded"
+      window.requestAnimationFrame(() => {
+        recalcularFontes();
+      });
+    });
+    resizeObserver.observe(pokemonCard.value);
+  }
+};
 
 const fetchPokemon = async (id: number) => {
   loading.value = true
@@ -272,13 +287,17 @@ watch(pokemon, (newPokemon) => {
 });
 
 onMounted(() => {
-  recalcularFontes()
-  window.addEventListener('resize', recalcularFontes)
+  setupObserver();
+  recalcularFontes();
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', recalcularFontes)
-})
+  // Limpa o observer para não vazar memória
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+});
 
 watch(() => props.id, (newId) => {
   if (newId) {

@@ -36,7 +36,7 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
+A
 <style scoped>
 /* --- STYLE (Modificações aplicadas) --- */
 

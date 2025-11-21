@@ -69,7 +69,7 @@
       </div>
     </section>
 
-    <h2 class="section-subtitle main-list-title">Todos os Pokémons</h2>
+    <h2 ref="mainListTitle" class="section-subtitle main-list-title">Todos os Pokémons</h2>
 
     <div v-if="allCards.length === 0" class="empty-list-message">
       <p>Carregando Pokémons...</p>
@@ -140,14 +140,16 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import PokemonDetailModal from './PokemonDetailModal.vue';
 import PokemonCard from './PokemonCard.vue';
-// ✅ IMPORTAÇÃO CORRETA DO ARQUIVO DE DADOS
 import { pokemonNameMap } from '../data/pokemonNameMap';
 
 // DADOS DE ESTADO
 const pageTitle = ref("Wishlist");
+
+// Referência para o título da lista
+const mainListTitle = ref(null);
 
 const isModalOpen = ref(false);
 const selectedPokemonId = ref(null);
@@ -164,13 +166,10 @@ const itemsPerPage = 12;
 const wishlist = ref([]);
 const allCards = ref([]);
 
-// --- GERAÇÃO DOS CARDS VIA MAPA (ON MOUNTED) ---
 onMounted(() => {
   if (pokemonNameMap) {
-    // Converte o Objeto { "1": "bulbasaur", ... } em Array de Objetos
     const cardsArray = Object.entries(pokemonNameMap).map(([idStr, name]) => {
       const id = Number(idStr);
-      // Formata o nome (Primeira letra maiúscula)
       const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
 
       return {
@@ -178,7 +177,6 @@ onMounted(() => {
         pokeId: id,
         name: formattedName,
         rarity: "common",
-        // Mock de detalhes para ordenação (já que não temos esses dados no map simples)
         details: {
           hp: (50 + (id % 100)),
           attack: (40 + (id % 80)),
@@ -188,7 +186,6 @@ onMounted(() => {
       };
     });
 
-    // Ordena por ID (1, 2, 3...) e define a lista
     allCards.value = cardsArray.sort((a, b) => a.id - b.id);
   } else {
     console.error("Erro: pokemonNameMap não carregou.");
@@ -206,12 +203,41 @@ const paginatedCards = computed(() => {
   return sortedAndFilteredCards.value.slice(start, end);
 });
 
+// --- FUNÇÃO AUXILIAR DE SCROLL CORRIGIDA ---
+const scrollToTopList = () => {
+  nextTick(() => {
+    if (mainListTitle.value) {
+      // SOLUÇÃO MAIS ROBUSTA:
+      // Em vez de 'scrollIntoView' (que pode falhar se o elemento já estiver visível),
+      // calculamos a posição exata e mandamos a janela rolar para lá.
+
+      // 1. Pega a posição do título em relação ao topo da janela atual
+      const rect = mainListTitle.value.getBoundingClientRect();
+      // 2. Soma com o quanto a janela já rolou (scrollY)
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      // 3. Subtrai um pouco (20px) para dar um respiro visual
+      const finalPosition = rect.top + scrollTop - 20;
+
+      window.scrollTo({
+        top: finalPosition,
+        behavior: 'smooth'
+      });
+    }
+  });
+};
+
 const nextPage = () => {
-  if (currentPage.value < totalPages.value) currentPage.value++;
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    scrollToTopList();
+  }
 };
 
 const prevPage = () => {
-  if (currentPage.value > 1) currentPage.value--;
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    scrollToTopList();
+  }
 };
 
 watch(searchQuery, () => {
@@ -235,14 +261,12 @@ const toggleFavorite = (card) => {
 const sortedAndFilteredCards = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
 
-  // Filtro
   let list = allCards.value.filter(item => {
     if (!query) return true;
     return item.name.toLowerCase().includes(query) ||
         String(item.pokeId).includes(query);
   });
 
-  // Ordenação
   const sortFn = (a, b) => {
     const key = currentSortKey.value;
     const direction = currentSortDirection.value === 'asc' ? 1 : -1;
@@ -270,8 +294,6 @@ const openModal = (id, rarity) => {
   isModalOpen.value = true;
 };
 
-const filterItems = () => {};
-
 const sortItems = (key) => {
   if (currentSortKey.value === key) {
     currentSortDirection.value = currentSortDirection.value === 'asc' ? 'desc' : 'asc';
@@ -287,20 +309,66 @@ const sortItems = (key) => {
 .wishlist-page { max-width: 1200px; margin: 0 auto; padding: 20px; font-family: sans-serif; }
 
 .wishlist-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+  gap: 20px; /* Adiciona um espaço garantido entre o título e a busca */
 }
 
 .page-title {
-  flex-grow: 1; text-align: left; color: #333; font-size: 2em;
-  margin: 0 20px 0 20px;
+  /* Removemos o flex-grow do título para ele não empurrar a busca */
+  text-align: left;
+  color: #333;
+  font-size: 2em;
+  margin: 0;
+  white-space: nowrap; /* Garante que o título não quebre linha */
 }
 
-.header-actions { display: flex; gap: 15px; flex-grow: 1; justify-content: flex-end; align-items: center; }
+.header-actions {
+  display: flex;
+  gap: 15px;
+  flex-grow: 1; /* Isso faz essa área ocupar todo o espaço vazio no meio */
+  justify-content: center; /* Centraliza a barra e os botões nesse espaço */
+  align-items: center;
+}
 
-.search-container { position: relative; display: flex; align-items: center; min-width: 400px; }
-.search-input { padding: 8px 12px 8px 35px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; width: 100%; }
-.search-icon { position: absolute; left: 10px; color: #999; }
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;       /* Tenta ocupar 100% do espaço disponível */
+  max-width: 600px;  /* Mas para em 600px para não ficar exagerado */
+}
+
+.search-input {
+  /* Aumentei o padding vertical (12px) para ficar mais alta */
+  padding: 12px 15px 12px 45px;
+  border: 1px solid #ddd;
+  border-radius: 50px; /* Borda bem redonda (estilo pílula) */
+  font-size: 1em;
+  width: 100%;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.search-input:focus {
+  background-color: #fff;
+  border-color: #ff69b4; /* Cor do destaque ao clicar */
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.15);
+  outline: none;
+}
+
+/* Ícone da Lupa */
+.search-icon {
+  position: absolute;
+  left: 15px; /* Ajustado para o novo padding */
+  color: #aaa;
+  pointer-events: none; /* Para o clique passar direto para o input */
+}
 
 .icon-button {
   background: none; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px;
@@ -310,17 +378,27 @@ const sortItems = (key) => {
 .icon-button:hover { background-color: #f0f0f0; }
 .icon-button svg { margin-right: 5px; }
 .back-button { margin-right: auto; margin-left: 0; }
-.sort-button { gap: 5px; }
+.sort-button {
+  /* Opcional: Se quiser que os botões fiquem com altura igual à barra */
+  padding: 10px 16px;
+  height: 44px; /* Ajuste fino para alinhar com a nova altura da busca */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .sort-indicator { margin-left: 5px; font-weight: bold; color: #007bff; }
 
-/* ✅ ESTILOS DA SEÇÃO DE FAVORITOS */
+/* SEÇÃO DE FAVORITOS */
 .favorites-section {
   background-color: #fdf2f8;
   border: 1px solid #fce7f3;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 40px;
-  min-height: 100px;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  transition: min-height 0.3s ease;
 }
 
 .section-subtitle {
@@ -331,6 +409,7 @@ const sortItems = (key) => {
   display: flex;
   align-items: center;
   gap: 10px;
+  scroll-margin-top: 20px;
 }
 
 .count-badge {
@@ -350,12 +429,13 @@ const sortItems = (key) => {
   padding-bottom: 15px;
   scrollbar-width: thin;
   scrollbar-color: #ff69b4 #fdf2f8;
+  flex-grow: 1;
+  align-items: flex-start;
 }
 
 .favorites-scroll-container::-webkit-scrollbar { height: 8px; }
 .favorites-scroll-container::-webkit-scrollbar-thumb { background-color: #ff69b4; border-radius: 4px; }
 
-/* ✅ CORREÇÃO DO TAMANHO DOS CARDS NOS FAVORITOS */
 .favorites-scroll-container .card-wrapper {
   width: 150px !important;
   min-width: 150px !important;
@@ -363,8 +443,13 @@ const sortItems = (key) => {
 }
 
 .no-favorites-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
   text-align: center; color: #888; font-style: italic;
-  padding: 30px; border: 1px dashed #e0e0e0; border-radius: 8px; background-color: white;
+  border: 1px dashed #e0e0e0; border-radius: 8px; background-color: white;
+  height: 100%;
 }
 
 .main-list-title {
@@ -374,12 +459,11 @@ const sortItems = (key) => {
 /* GRID DA LISTA PRINCIPAL */
 .card-display-area {
   display: grid;
-  /* Tamanho pequeno (150px) para a lista principal */
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 15px;
 }
 
-/* ESTILOS DO CARD (Padrão Small) */
+/* ESTILOS DO CARD */
 .card-wrapper {
   position: relative; background: #fff; border-radius: 8px; border: 1px solid #ddd;
   box-shadow: 0 4px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column;
@@ -419,7 +503,7 @@ const sortItems = (key) => {
 .id-badge { color: #888; font-size: 0.8em; margin-right: 3px; }
 .empty-list-message { grid-column: 1 / -1; text-align: center; padding: 50px; color: #999; }
 
-/* ESTILOS DE PAGINAÇÃO */
+/* PAGINAÇÃO */
 .pagination-controls {
   display: flex; justify-content: center; align-items: center;
   gap: 20px; margin-top: 40px; padding: 20px 0; border-top: 1px solid #eee;
