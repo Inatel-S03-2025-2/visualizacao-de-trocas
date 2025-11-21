@@ -97,7 +97,7 @@ const isHot = computed(() => props.offerCount > 3)
 .trade-card:hover { border-color: #b0bec5; transform: translateY(-2px); }
 .trade-card.active { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: #f8f9fa; transform: none; }
 .trade-header { display: flex; align-items: center; justify-content: flex-start; gap: 0; }
-.user-info-block { display: flex; align-items: center; gap: 12px; width: 220px; min-width: 220px; padding-right: 20px; border-right: 2px solid #f0f0f0; margin-right: 20px; }
+.user-info-block { display: flex; align-items: center; gap: 12px; width: 250px; min-width: 250px; padding-right: 20px; border-right: 2px solid #f0f0f0; margin-right: 20px; }
 .user-text-info { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
 .username { font-weight: 700; color: #333; font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .user-level { font-size: 0.8em; color: #999; }
