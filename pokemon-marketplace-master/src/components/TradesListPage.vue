@@ -112,7 +112,7 @@ watch(searchQuery, () => currentPage.value = 1)
   <div class="trade-list-page">
     <header class="marketplace-header">
       <router-link to="/" class="icon-button back-button"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></router-link>
-      <h1 class="page-title">Trocas Disponíveis</h1>
+      <h1 class="page-title">Marketplace Trocas</h1>
       <div class="header-actions">
         <div class="search-container"><input type="text" v-model="searchQuery" placeholder="Busca..." class="search-input"/><svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
         <div class="filter-group">
