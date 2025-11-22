@@ -161,7 +161,7 @@ const currentSortDirection = ref('asc');
 
 // --- PAGINAÇÃO ---
 const currentPage = ref(1);
-const itemsPerPage = 12;
+const itemsPerPage = 14;
 
 const wishlist = ref([]);
 const allCards = ref([]);
