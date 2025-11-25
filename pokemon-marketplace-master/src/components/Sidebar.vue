@@ -14,7 +14,8 @@ const menuItems = ref([
   { icon: 'home', label: 'Home', to: '/trades' },
   { icon: 'plus', label: 'Add Trade', to: '/add-trade' },
   { icon: 'heart', label: 'Favorites', to: '/wishlist' },
-  { icon: 'cards', label: 'Card Test', to: '/card-test' }
+  { icon: 'cards', label: 'Card Test', to: '/card-test' },
+  { icon: 'swap', label: 'Minhas Trocas', to: '/mytrades' }
 ])
 
 // REMOVIDO: A lógica do randomId e onMounted
@@ -38,6 +39,7 @@ const menuItems = ref([
           class="menu-item"
           active-class="active"
       >
+
         <span class="menu-icon">
           <template v-if="item.icon === 'home'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -60,6 +62,15 @@ const menuItems = ref([
           <template v-else-if="item.icon === 'heart'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </template>
+          <template v-else-if="item.icon === 'swap'">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="17 1 21 5 17 9"/>
+              <line x1="3" y1="5" x2="21" y2="5"/>
+              <polyline points="7 15 3 19 7 23"/>
+              <line x1="3" y1="19" x2="21" y2="19"/>
             </svg>
           </template>
         </span>

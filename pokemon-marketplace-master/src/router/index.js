@@ -5,6 +5,7 @@ import WishlistPage from '../components/WishlistPage.vue';
 import CardTest from '../components/CardTest.vue';
 // ✅ IMPORTA A PÁGINA PRINCIPAL
 import TradesListPage from '../components/TradesListPage.vue';
+import MyTradesPage from "../components/MyTradesPage.vue";
 
 // Componentes "dummy" temporários
 const AddTradePage = { template: '<h1>Página Add Trade (Em construção)</h1>' };
@@ -41,6 +42,9 @@ const routes = [
         path: '/my-cards',
         name: 'MyCards',
         component: MyCardsPage
+    },
+    { 
+        path: "/mytrades", component: MyTradesPage 
     }
 ];
 
