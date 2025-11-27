@@ -27,9 +27,17 @@
       </div>
 
       <div class="cards-row">
+        <!-- CARTAS ENVIADAS -->
         <div class="column">
           <h3>Carta Enviada</h3>
-          <PokemonCard />
+
+          <div
+            v-for="card in sentCards"
+            :key="card.id"
+            class="simple-card-wrapper"
+          >
+            <PokemonCard :id="getId(card)" />
+          </div>
         </div>
 
         <div class="swap-icon">
@@ -42,9 +50,17 @@
           </svg>
         </div>
 
+        <!-- CARTAS RECEBIDAS -->
         <div class="column">
           <h3>Carta Recebida</h3>
-          <PokemonCard />
+
+          <div
+            v-for="card in receivedCards"
+            :key="card.id"
+            class="simple-card-wrapper"
+          >
+            <PokemonCard :id="getId(card)" />
+          </div>
         </div>
       </div>
 
@@ -70,28 +86,29 @@
   </div>
 </template>
 
-<script setup>
-import { ref, inject } from "vue";
+<script setup lang="ts">
+import { ref } from "vue";
 import PokemonCard from "./PokemonCard.vue";
 
 const activeTab = ref("pending");
 const pageTitle = ref("Minhas trocas");
 
-// 🔔 Injeta o notify do App.vue
-const notify = inject("notify");
-
-// CONFIRMAÇÃO DE CANCELAMENTO
-const confirmCancel = ref(false);
-
-// 🔥 Ações
-function showDetails() {
-  notify?.("Abrindo detalhes da troca...");
+interface CardModel {
+  id: number;
+  pokeId?: number;
+  pokeApiId?: number;
 }
 
-function cancelTrade() {
-  confirmCancel.value = false;
-  notify?.("Troca cancelada!", "error"); // ❌ notificação
-}
+// Arrays de cartas reais
+const sentCards = ref<CardModel[]>([
+  { id: 1, pokeId: 25 }    
+]);
+
+const receivedCards = ref<CardModel[]>([
+  { id: 3, pokeId: 150 }   // exemplo Mewtwo
+]);
+
+const getId = (card: CardModel) => card.pokeId || card.pokeApiId || card.id;
 </script>
 
 <style scoped>
@@ -208,81 +225,22 @@ function cancelTrade() {
   color: #333;
 }
 
-/* MODAL */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: #ffffff;
-  padding: 32px 24px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  max-width: 400px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  transform: scale(0.95);
-}
-
-/* Modal actions */
-.modal-actions {
-  display: flex;
-  justify-content: space-around;
-  gap: 16px;
-}
-
-.confirm-btn {
-  background: #f44336;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 12px;
+.simple-card-wrapper {
+  width: 180px; 
+  perspective: 1000px;
+  display: block;
   cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s;
 }
 
-.confirm-btn:hover {
-  background: #d32f2f;
+.simple-card-wrapper :deep(.pokemon-card) {
+  width: 100% !important;
+  height: auto !important;
+  transition: transform 0.2s ease-out;
 }
 
-.close-btn {
-  background: #ccc;
-  color: #222;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s;
+.simple-card-wrapper:hover :deep(.pokemon-card) {
+  transform: translateY(-5px) scale(1.1);
+  z-index: 10;
 }
 
-.close-btn:hover {
-  background: #aaa;
-}
-
-/* ANIMAÇÃO MODAL */
-.fade-scale-enter-active,
-.fade-scale-leave-active {
-  transition: all 0.25s ease;
-}
-.fade-scale-enter-from,
-.fade-scale-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
-.fade-scale-enter-to,
-.fade-scale-leave-from {
-  opacity: 1;
-  transform: scale(1);
-}
 </style>
