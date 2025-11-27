@@ -27,9 +27,17 @@
       </div>
 
       <div class="cards-row">
+        <!-- CARTAS ENVIADAS -->
         <div class="column">
           <h3>Carta Enviada</h3>
-          <PokemonCard />
+
+          <div
+            v-for="card in sentCards"
+            :key="card.id"
+            class="simple-card-wrapper"
+          >
+            <PokemonCard :id="getId(card)" />
+          </div>
         </div>
 
         <!-- ICON BETWEEN CARDS -->
@@ -43,9 +51,17 @@
           </svg>
         </div>
 
+        <!-- CARTAS RECEBIDAS -->
         <div class="column">
           <h3>Carta Recebida</h3>
-          <PokemonCard />
+
+          <div
+            v-for="card in receivedCards"
+            :key="card.id"
+            class="simple-card-wrapper"
+          >
+            <PokemonCard :id="getId(card)" />
+          </div>
         </div>
       </div>
 
@@ -57,12 +73,29 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import PokemonCard from "./PokemonCard.vue";
 
 const activeTab = ref("pending");
 const pageTitle = ref("Minhas trocas");
+
+interface CardModel {
+  id: number;
+  pokeId?: number;
+  pokeApiId?: number;
+}
+
+// Arrays de cartas reais
+const sentCards = ref<CardModel[]>([
+  { id: 1, pokeId: 25 }    
+]);
+
+const receivedCards = ref<CardModel[]>([
+  { id: 3, pokeId: 150 }   // exemplo Mewtwo
+]);
+
+const getId = (card: CardModel) => card.pokeId || card.pokeApiId || card.id;
 </script>
 
 <style scoped>
@@ -185,4 +218,23 @@ const pageTitle = ref("Minhas trocas");
   background-color: #f5f4fc;
   color: #333;
 }
+
+.simple-card-wrapper {
+  width: 180px; 
+  perspective: 1000px;
+  display: block;
+  cursor: pointer;
+}
+
+.simple-card-wrapper :deep(.pokemon-card) {
+  width: 100% !important;
+  height: auto !important;
+  transition: transform 0.2s ease-out;
+}
+
+.simple-card-wrapper:hover :deep(.pokemon-card) {
+  transform: translateY(-5px) scale(1.1);
+  z-index: 10;
+}
+
 </style>
