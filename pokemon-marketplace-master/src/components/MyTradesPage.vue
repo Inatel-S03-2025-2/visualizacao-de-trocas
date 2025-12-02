@@ -5,15 +5,15 @@
     <!-- TABS -->
     <div class="tabs">
       <button
-        :class="['tab', activeTab === 'pending' ? 'active' : '']"
-        @click="activeTab = 'pending'"
+          :class="['tab', activeTab === 'pending' ? 'active' : '']"
+          @click="activeTab = 'pending'"
       >
         Em andamento
       </button>
 
       <button
-        :class="['tab', activeTab === 'done' ? 'active' : '']"
-        @click="activeTab = 'done'"
+          :class="['tab', activeTab === 'done' ? 'active' : '']"
+          @click="activeTab = 'done'"
       >
         Concluídas
       </button>
@@ -32,7 +32,6 @@
           <PokemonCard />
         </div>
 
-        <!-- ICON BETWEEN CARDS -->
         <div class="swap-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -50,19 +49,49 @@
       </div>
 
       <div class="actions">
-        <button class="details-btn">Ver detalhes</button>
-        <button class="cancel-btn">Cancelar troca</button>
+        <button class="details-btn" @click="showDetails">Ver detalhes</button>
+        <button class="cancel-btn" @click="confirmCancel = true">Cancelar troca</button>
       </div>
     </div>
+
+    <!-- CONFIRM CANCEL MODAL -->
+    <transition name="fade-scale">
+      <div v-if="confirmCancel" class="modal-overlay">
+        <div class="modal">
+          <h3>Você tem certeza?</h3>
+          <p>Deseja realmente cancelar esta troca?</p>
+          <div class="modal-actions">
+            <button class="confirm-btn" @click="cancelTrade">Sim, cancelar</button>
+            <button class="close-btn" @click="confirmCancel = false">Não</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import PokemonCard from "./PokemonCard.vue";
 
 const activeTab = ref("pending");
 const pageTitle = ref("Minhas trocas");
+
+// 🔔 Injeta o notify do App.vue
+const notify = inject("notify");
+
+// CONFIRMAÇÃO DE CANCELAMENTO
+const confirmCancel = ref(false);
+
+// 🔥 Ações
+function showDetails() {
+  notify?.("Abrindo detalhes da troca...");
+}
+
+function cancelTrade() {
+  confirmCancel.value = false;
+  notify?.("Troca cancelada!", "error"); // ❌ notificação
+}
 </script>
 
 <style scoped>
@@ -72,13 +101,6 @@ const pageTitle = ref("Minhas trocas");
   flex-direction: column;
   align-items: flex-start;
   gap: 24px;
-}
-
-/* Title */
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #333; 
 }
 
 /* Tabs */
@@ -184,5 +206,83 @@ const pageTitle = ref("Minhas trocas");
 .cancel-btn {
   background-color: #f5f4fc;
   color: #333;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  padding: 32px 24px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  transform: scale(0.95);
+}
+
+/* Modal actions */
+.modal-actions {
+  display: flex;
+  justify-content: space-around;
+  gap: 16px;
+}
+
+.confirm-btn {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.confirm-btn:hover {
+  background: #d32f2f;
+}
+
+.close-btn {
+  background: #ccc;
+  color: #222;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.close-btn:hover {
+  background: #aaa;
+}
+
+/* ANIMAÇÃO MODAL */
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.25s ease;
+}
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.fade-scale-enter-to,
+.fade-scale-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>
