@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick, inject } from 'vue';
 import PokemonDetailModal from './PokemonDetailModal.vue';
 import PokemonCard from './PokemonCard.vue';
 import { pokemonNameMap } from '../data/pokemonNameMap';
@@ -165,6 +165,30 @@ const itemsPerPage = 14;
 
 const wishlist = ref([]);
 const allCards = ref([]);
+
+// NOTIFICAÇÃO
+
+const notify = inject("notify");
+
+function addToFavorites(pokemon) {
+  const exists = wishlist.value.some(item => item.id === pokemon.id);
+
+  if (!exists) {
+    wishlist.value.push({
+      id: pokemon.id,
+      pokeId: pokemon.pokeId,
+      name: pokemon.name,
+      rarity: pokemon.rarity
+    });
+
+    notify("Pokémon adicionado aos favoritos!", "success");
+  }
+}
+
+function removeFromFavorites(pokemon) {
+  wishlist.value = wishlist.value.filter(item => item.id !== pokemon.id);
+  notify("Pokémon removido dos favoritos!", "error");
+}
 
 onMounted(() => {
   if (pokemonNameMap) {
@@ -251,9 +275,9 @@ const isFavorite = (id) => {
 
 const toggleFavorite = (card) => {
   if (isFavorite(card.id)) {
-    wishlist.value = wishlist.value.filter(item => item.id !== card.id);
+    removeFromFavorites(card);
   } else {
-    wishlist.value.push(card);
+    addToFavorites(card);
   }
 };
 
@@ -515,4 +539,5 @@ const sortItems = (key) => {
 .pagination-button:disabled { background-color: #ccc; cursor: not-allowed; }
 .pagination-button:hover:not(:disabled) { background-color: #555; }
 .page-info { font-weight: bold; color: #555; }
+  
 </style>
