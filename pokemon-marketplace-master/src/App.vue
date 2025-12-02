@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, provide } from 'vue' // ✅ 1. Importe 'ref' e 'provide'
+import { ref, provide } from 'vue'
 import Sidebar from './components/Sidebar.vue'
-// ✅ 2. Importe o novo modal
 import PokemonDetailModal from './components/PokemonDetailModal.vue'
 
-// ✅ 3. Crie os 'refs' de estado global
+// ---------------------------
+// 🔵 MODAL CONTROLS
+// ---------------------------
 const isModalOpen = ref(false)
 const selectedPokemonId = ref<number | null>(null)
-const selectedPokemonRarity = ref<'normal' | 'holo' | undefined>(undefined);
+const selectedPokemonRarity = ref<'normal' | 'holo' | undefined>(undefined)
 
-// ✅ 4. Crie as funções de controle
 function openModal(data: { id: number, rarity?: 'normal' | 'holo' }) {
   selectedPokemonId.value = data.id
-  selectedPokemonRarity.value = data.rarity // Salva a raridade
+  selectedPokemonRarity.value = data.rarity
   isModalOpen.value = true
 }
 
@@ -20,48 +20,91 @@ function closeModal() {
   isModalOpen.value = false
 }
 
-// ✅ 5. "Forneça" (Provide) as funções para todos os filhos
-provide('modal-controls', {
-  openModal
-  // (Você pode adicionar 'closeModal' se precisar que um filho feche)
-})
+provide('modal-controls', { openModal })
 
+// ---------------------------
+// 🟢 NOTIFICAÇÕES COMPLETAS
+// ---------------------------
+const notifications = ref<
+    { id: number; message: string; type: 'success' | 'error' }[]
+>([])
+
+let counter = 0
+
+const successSound = new Audio('/sounds/success.mp3')
+const errorSound = new Audio('/sounds/error.mp3')
+
+function notify(message: string, type: 'success' | 'error' = 'success') {
+  const id = counter++
+  notifications.value.unshift({ id, message, type })
+
+  if (type === 'success') successSound.play()
+  else errorSound.play()
+
+  setTimeout(() => {
+    removeNotification(id)
+  }, 5000)
+}
+
+function removeNotification(id: number) {
+  notifications.value = notifications.value.filter(n => n.id !== id)
+}
+
+provide("notify", notify)
+
+// ---------------------------
+// 🌙 DARK / LIGHT MODE (sem botão)
+// ---------------------------
+const theme = ref<'light' | 'dark'>(
+    localStorage.getItem("theme") === "dark" ? "dark" : "light"
+)
 </script>
 
 <template>
-  <div class="app-container">
+  <div class="app-container" :class="theme">
     <Sidebar />
 
     <main class="main-content">
       <router-view />
     </main>
 
-    <aside class="right-sidebar">
-      <div class="notification-card">
-        <div class="notification-icon">!</div>
-        <div class="notification-content">
-          <div class="notification-line"></div>
-          <div class="notification-line short"></div>
+    <PokemonDetailModal
+        v-if="isModalOpen && selectedPokemonId"
+        :id="selectedPokemonId"
+        :rarity="selectedPokemonRarity"
+        @close="closeModal"
+    />
+
+    <!-- 🔔 NOTIFICAÇÕES -->
+    <div class="notification-container">
+      <div
+          v-for="n in notifications"
+          :key="n.id"
+          class="notification-card"
+          :class="n.type"
+      >
+        <div class="icon">
+          {{ n.type === 'success' ? '✔️' : '❌' }}
         </div>
+
+        <p>{{ n.message }}</p>
+
+        <button class="close-btn" @click="removeNotification(n.id)">
+          ✖
+        </button>
       </div>
-    </aside>
+    </div>
   </div>
-
-  <PokemonDetailModal
-      v-if="isModalOpen && selectedPokemonId"
-      :id="selectedPokemonId"
-      :rarity="selectedPokemonRarity"
-      @close="closeModal"
-  />
-
 </template>
 
 <style scoped>
-/* Estilos do Layout */
+/* LAYOUT */
 .app-container {
   display: flex;
   height: 100vh;
-  background-color: #f5f5f5;
+  background: var(--bg);
+  color: var(--text);
+  transition: 0.3s;
 }
 
 .main-content {
@@ -70,65 +113,90 @@ provide('modal-controls', {
   overflow-y: auto;
 }
 
-.right-sidebar {
-  width: 280px;
-  padding: 24px;
-  background-color: #fff;
-  border-left: 1px solid #e0e0e0;
+/* THEMES */
+:root {
+  --bg-light: #f5f5f5;
+  --text-light: #222;
+
+  --bg-dark: #181818;
+  --text-dark: #ddd;
+}
+
+.light {
+  --bg: var(--bg-light);
+  --text: var(--text-light);
+}
+
+.dark {
+  --bg: var(--bg-dark);
+  --text: var(--text-dark);
+}
+
+/* ------------------------------ */
+/* NOTIFICAÇÕES BONITAS */
+/* ------------------------------ */
+
+.notification-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
 }
 
 .notification-card {
   display: flex;
-  gap: 16px;
-  padding: 20px;
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-}
-
-.notification-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border: 2px solid #333;
-  border-radius: 50%;
-  font-size: 24px;
-  font-weight: bold;
+  gap: 12px;
+  min-width: 260px;
+  background: #ffffff; /* fundo branco opaco */
+  color: #222222;       /* texto escuro */
+  padding: 14px 18px;
+  border-radius: 14px;
+  border-left: 6px solid;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+  animation: slide-up 0.35s ease-out;
+  position: relative;
+}
+.notification-card.success {
+  border-color: #4caf50;
+}
+.notification-card.error {
+  border-color: #f44336;
 }
 
-.notification-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.icon {
+  font-size: 22px;
 }
 
-.notification-line {
-  height: 12px;
-  background-color: #e0e0e0;
-  border-radius: 4px;
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  margin-left: auto;
+  color: var(--text);
+  opacity: 0.7;
 }
 
-.notification-line.short {
-  width: 60%;
+.close-btn:hover {
+  opacity: 1;
 }
 
-@media (max-width: 1024px) {
-  .right-sidebar {
-    display: none;
+/* ANIMAÇÃO */
+@keyframes slide-up {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+    scale: 0.95;
   }
-}
-
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-
-  .main-content {
-    padding: 16px;
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    scale: 1;
   }
 }
 </style>
