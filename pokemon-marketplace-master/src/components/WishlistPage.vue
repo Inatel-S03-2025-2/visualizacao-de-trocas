@@ -65,7 +65,7 @@
       </div>
 
       <div v-else class="no-favorites-message">
-        <p>Você ainda não possui nenhuma carta favoritada.</p>
+        <p>Você ainda não favoritou nenhuma carta.</p>
       </div>
     </section>
 
@@ -139,186 +139,128 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick, inject } from 'vue';
 import PokemonDetailModal from './PokemonDetailModal.vue';
 import PokemonCard from './PokemonCard.vue';
 import { pokemonNameMap } from '../data/pokemonNameMap';
 
-// DADOS DE ESTADO
+// --- ESTADO ---
 const pageTitle = ref("Wishlist");
-
-// Referência para o título da lista
 const mainListTitle = ref(null);
 
 const isModalOpen = ref(false);
-const selectedPokemonId = ref(null);
-const selectedPokemonRarity = ref(null);
+const selectedPokemonId = ref<number | null>(null);
+const selectedPokemonRarity = ref<string | null>(null);
 
 const searchQuery = ref('');
 const currentSortKey = ref('id');
 const currentSortDirection = ref('asc');
 
-// --- PAGINAÇÃO ---
 const currentPage = ref(1);
 const itemsPerPage = 14;
 
-const wishlist = ref([]);
-const allCards = ref([]);
+const wishlist = ref<any[]>([]);
+const allCards = ref<any[]>([]);
 
-// NOTIFICAÇÃO
+// --- NOTIFICAÇÃO (injeção do App.vue) ---
+const notify = inject<(message: string, type: 'success' | 'error') => void>('notify');
 
-const notify = inject("notify");
+if (!notify) console.warn("Função notify não foi injetada!");
 
-function addToFavorites(pokemon) {
-  const exists = wishlist.value.some(item => item.id === pokemon.id);
-
-  if (!exists) {
+// --- FAVORITOS ---
+function addToFavorites(pokemon: any) {
+  if (!wishlist.value.some(item => item.id === pokemon.id)) {
     wishlist.value.push({
       id: pokemon.id,
       pokeId: pokemon.pokeId,
       name: pokemon.name,
       rarity: pokemon.rarity
     });
-
-    notify("Pokémon adicionado aos favoritos!", "success");
+    notify?.("Pokémon adicionado aos favoritos!", "success");
   }
 }
 
-function removeFromFavorites(pokemon) {
+function removeFromFavorites(pokemon: any) {
   wishlist.value = wishlist.value.filter(item => item.id !== pokemon.id);
-  notify("Pokémon removido dos favoritos!", "error");
+  notify?.("Pokémon removido dos favoritos!", "error");
 }
 
+const isFavorite = (id: number) => wishlist.value.some(item => item.id === id);
+const toggleFavorite = (card: any) => {
+  isFavorite(card.id) ? removeFromFavorites(card) : addToFavorites(card);
+};
+
+// --- CARREGAR DADOS ---
 onMounted(() => {
   if (pokemonNameMap) {
     const cardsArray = Object.entries(pokemonNameMap).map(([idStr, name]) => {
       const id = Number(idStr);
       const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-
       return {
-        id: id,
+        id,
         pokeId: id,
         name: formattedName,
         rarity: "common",
         details: {
-          hp: (50 + (id % 100)),
-          attack: (40 + (id % 80)),
+          hp: 50 + (id % 100),
+          attack: 40 + (id % 80),
           type: 'Normal',
           description: `Um Pokémon chamado ${formattedName}.`
         }
       };
     });
-
     allCards.value = cardsArray.sort((a, b) => a.id - b.id);
   } else {
     console.error("Erro: pokemonNameMap não carregou.");
   }
 });
 
-// --- FUNÇÕES DE PAGINAÇÃO ---
-const totalPages = computed(() => {
-  return Math.ceil(sortedAndFilteredCards.value.length / itemsPerPage);
-});
-
-const paginatedCards = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return sortedAndFilteredCards.value.slice(start, end);
-});
-
-// --- FUNÇÃO AUXILIAR DE SCROLL CORRIGIDA ---
-const scrollToTopList = () => {
-  nextTick(() => {
-    if (mainListTitle.value) {
-      // SOLUÇÃO MAIS ROBUSTA:
-      // Em vez de 'scrollIntoView' (que pode falhar se o elemento já estiver visível),
-      // calculamos a posição exata e mandamos a janela rolar para lá.
-
-      // 1. Pega a posição do título em relação ao topo da janela atual
-      const rect = mainListTitle.value.getBoundingClientRect();
-      // 2. Soma com o quanto a janela já rolou (scrollY)
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      // 3. Subtrai um pouco (20px) para dar um respiro visual
-      const finalPosition = rect.top + scrollTop - 20;
-
-      window.scrollTo({
-        top: finalPosition,
-        behavior: 'smooth'
-      });
-    }
-  });
-};
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    scrollToTopList();
-  }
-};
-
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    scrollToTopList();
-  }
-};
-
-watch(searchQuery, () => {
-  currentPage.value = 1;
-});
-
-// --- LÓGICA DE FAVORITOS ---
-const isFavorite = (id) => {
-  return wishlist.value.some(item => item.id === id);
-};
-
-const toggleFavorite = (card) => {
-  if (isFavorite(card.id)) {
-    removeFromFavorites(card);
-  } else {
-    addToFavorites(card);
-  }
-};
-
 // --- FILTRO E ORDENAÇÃO ---
 const sortedAndFilteredCards = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
+  let list = allCards.value.filter(item =>
+      !query || item.name.toLowerCase().includes(query) || String(item.pokeId).includes(query)
+  );
 
-  let list = allCards.value.filter(item => {
-    if (!query) return true;
-    return item.name.toLowerCase().includes(query) ||
-        String(item.pokeId).includes(query);
-  });
-
-  const sortFn = (a, b) => {
-    const key = currentSortKey.value;
-    const direction = currentSortDirection.value === 'asc' ? 1 : -1;
-
-    if (key === 'id') {
-      return (a.pokeId - b.pokeId) * direction;
-    }
-    else if (key === 'name') {
-      let valA = a.name.toLowerCase();
-      let valB = b.name.toLowerCase();
-      if (valA < valB) return -1 * direction;
-      if (valA > valB) return 1 * direction;
-      return 0;
-    }
+  const direction = currentSortDirection.value === 'asc' ? 1 : -1;
+  return list.sort((a, b) => {
+    if (currentSortKey.value === 'id') return (a.pokeId - b.pokeId) * direction;
+    if (currentSortKey.value === 'name') return a.name.localeCompare(b.name) * direction;
     return 0;
-  };
-
-  return list.sort(sortFn);
+  });
 });
 
-// FUNÇÕES DE AÇÃO
-const openModal = (id, rarity) => {
+// --- PAGINAÇÃO ---
+const totalPages = computed(() => Math.ceil(sortedAndFilteredCards.value.length / itemsPerPage));
+const paginatedCards = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return sortedAndFilteredCards.value.slice(start, start + itemsPerPage);
+});
+
+const scrollToTopList = () => {
+  nextTick(() => {
+    if (mainListTitle.value) {
+      const rect = mainListTitle.value.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      window.scrollTo({ top: rect.top + scrollTop - 20, behavior: 'smooth' });
+    }
+  });
+};
+
+const nextPage = () => { if (currentPage.value < totalPages.value) { currentPage.value++; scrollToTopList(); } };
+const prevPage = () => { if (currentPage.value > 1) { currentPage.value--; scrollToTopList(); } };
+
+watch(searchQuery, () => currentPage.value = 1);
+
+// --- AÇÕES ---
+const openModal = (id: number, rarity: string) => {
   selectedPokemonId.value = id;
   selectedPokemonRarity.value = rarity;
   isModalOpen.value = true;
 };
 
-const sortItems = (key) => {
+const sortItems = (key: string) => {
   if (currentSortKey.value === key) {
     currentSortDirection.value = currentSortDirection.value === 'asc' ? 'desc' : 'asc';
   } else {
@@ -539,5 +481,4 @@ const sortItems = (key) => {
 .pagination-button:disabled { background-color: #ccc; cursor: not-allowed; }
 .pagination-button:hover:not(:disabled) { background-color: #555; }
 .page-info { font-weight: bold; color: #555; }
-  
 </style>
