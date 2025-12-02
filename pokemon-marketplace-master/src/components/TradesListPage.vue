@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, inject } from 'vue'
 import TradeCard from '../components/TradeCard.vue'
 import PokemonCard from '../components/PokemonCard.vue'
 import { tradesData } from '../data/tradesData'
@@ -7,6 +7,9 @@ import { tradesData } from '../data/tradesData'
 // IMPORTANTE: Importe o seu mapa de nomes aqui
 // Ajuste o caminho '../data/pokemonNameMap' conforme onde você salvou o arquivo
 import { pokemonNameMap } from '../data/pokemonNameMap'
+
+// NOTIFICAÇÃO
+const notify = inject<(message: string, type?: 'success' | 'error') => void>("notify")
 
 // ... (Estados mantidos iguais) ...
 const searchQuery = ref('')
@@ -104,7 +107,14 @@ function handleCardClick(tradeId: number, cardId?: number) {
 function openPopup() { showPopup.value = true }
 function closePopup() { showPopup.value = false }
 function selectUserCard(cardId: number) { selectedUserCardApiId.value = cardId; showPopup.value = false }
-function handleAddProposal() { alert("Proposta enviada!"); expandedTradeId.value = null; selectedUserCardApiId.value = null; displayCardId.value = null }
+function handleAddProposal() {
+  expandedTradeId.value = null
+  selectedUserCardApiId.value = null
+  displayCardId.value = null
+
+  // ✅ Notificação
+  notify?.("Proposta enviada com sucesso!", "success")
+}
 watch(searchQuery, () => currentPage.value = 1)
 </script>
 
@@ -275,4 +285,5 @@ watch(searchQuery, () => currentPage.value = 1)
 .pagination-button:disabled { background: #ccc; cursor: not-allowed; }
 .expand-fade-enter-active, .expand-fade-leave-active { transition: all 0.3s ease; max-height: 600px; opacity: 1; overflow: hidden; }
 .expand-fade-enter-from, .expand-fade-leave-to { max-height: 0; opacity: 0; }
+  
 </style>
