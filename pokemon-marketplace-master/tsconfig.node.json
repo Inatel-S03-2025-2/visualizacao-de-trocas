@@ -4,7 +4,10 @@
     "target": "ES2023",
     "lib": ["ES2023"],
     "module": "ESNext",
-    "types": ["node"],
+
+    /* AQUI ESTÁ A CORREÇÃO: Adicionamos vitest/globals */
+    "types": ["node", "vitest/globals"],
+
     "skipLibCheck": true,
 
     /* Bundler mode */

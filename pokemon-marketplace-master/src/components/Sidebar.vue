@@ -9,7 +9,7 @@ const currentUser = ref({
 // MENU ATUALIZADO: Apenas 3 itens
 const menuItems = ref([
   { icon: 'home', label: 'Home', to: '/trades' },
-  { icon: 'swap', label: 'Minhas Trocas', to: '/mytrades' }, // 2º lugar agora é Minhas Trocas
+  { icon: 'swap', label: 'Minhas Trocas', to: '/mytrades' }, /
   { icon: 'heart', label: 'Favorites', to: '/wishlist' }
 ])
 </script>
