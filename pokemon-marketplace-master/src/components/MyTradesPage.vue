@@ -20,7 +20,7 @@
     </div>
 
     <!-- TRADE CARD LIST -->
-    <div class="trade-card">
+    <div v-if="selectedTrade" class="trade-card">
       <div class="trade-header">
         <span class="username">@DragonMaster</span>
         <span class="status-badge">Em andamento</span>
@@ -65,7 +65,6 @@
       </div>
 
       <div class="actions">
-        <button class="details-btn" @click="showDetails">Ver detalhes</button>
         <button class="cancel-btn" @click="confirmCancel = true">Cancelar troca</button>
       </div>
     </div>
@@ -90,14 +89,36 @@
 import { ref } from "vue";
 import PokemonCard from "./PokemonCard.vue";
 
+
 const activeTab = ref("pending");
 const pageTitle = ref("Minhas trocas");
+const confirmCancel = ref(false);
 
 interface CardModel {
   id: number;
   pokeId?: number;
   pokeApiId?: number;
 }
+
+interface TradeModel {
+  id: number;
+  user: string;
+  sentCards: CardModel[];
+  receivedCards: CardModel[];
+  status: "pending" | "done";
+}
+
+const trades = ref<TradeModel[]>([
+  {
+    id: 1,
+    user: "@DragonMaster",
+    status: "pending",
+    sentCards: [{ id: 1, pokeId: 25 }],
+    receivedCards: [{ id: 3, pokeId: 150 }]
+  }
+]);
+
+const selectedTrade = ref<TradeModel | null>(trades.value[0]);
 
 // Arrays de cartas reais
 const sentCards = ref<CardModel[]>([
@@ -109,6 +130,14 @@ const receivedCards = ref<CardModel[]>([
 ]);
 
 const getId = (card: CardModel) => card.pokeId || card.pokeApiId || card.id;
+
+const cancelTrade = () => {
+  if (!selectedTrade.value) return;
+  trades.value = trades.value.filter(t => t.id !== selectedTrade.value!.id);
+  selectedTrade.value = null;
+  confirmCancel.value = false;
+  alert("Troca cancelada!");
+};
 </script>
 
 <style scoped>
@@ -124,6 +153,26 @@ const getId = (card: CardModel) => card.pokeId || card.pokeApiId || card.id;
 .tabs {
   display: flex;
   gap: 24px;
+}
+
+.modal-actions button {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+/* Botão confirmar (igual ao details-btn) */
+.confirm-btn {
+  background-color: #333;
+  color: white;
+}
+
+/* Botão cancelar (igual ao cancel-btn da tela principal) */
+.close-btn {
+  background-color: #f5f4fc;
+  color: #333;
 }
 
 .tab {
@@ -241,6 +290,16 @@ const getId = (card: CardModel) => card.pokeId || card.pokeApiId || card.id;
 .simple-card-wrapper:hover :deep(.pokemon-card) {
   transform: translateY(-5px) scale(1.1);
   z-index: 10;
+}
+
+.confirm-btn {
+  background-color: #333;
+  color: white;
+}
+
+.close-btn {
+  background-color: #f5f4fc;
+  color: #333;
 }
 
 </style>
