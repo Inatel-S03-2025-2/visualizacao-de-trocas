@@ -285,5 +285,5 @@ watch(searchQuery, () => currentPage.value = 1)
 .pagination-button:disabled { background: #ccc; cursor: not-allowed; }
 .expand-fade-enter-active, .expand-fade-leave-active { transition: all 0.3s ease; max-height: 600px; opacity: 1; overflow: hidden; }
 .expand-fade-enter-from, .expand-fade-leave-to { max-height: 0; opacity: 0; }
-  
+
 </style>
