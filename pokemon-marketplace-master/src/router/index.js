@@ -12,10 +12,16 @@ const AddTradePage = { template: '<h1>Página Add Trade (Em construção)</h1>' 
 const MyCardsPage = { template: '<h1>Página My Cards (Em construção)</h1>' };
 
 const routes = [
+     {
+        path: '/login',
+        name: 'Login',
+        component: LoginPage
+    },
+
     // ✅ ADICIONADO: Redireciona a raiz '/' para '/trades'
     {
         path: '/',
-        redirect: '/trades' // Qualquer acesso à raiz é jogado para /trades
+        redirect: '/login' // Qualquer acesso à raiz é jogado para /trades
     },
     // ✅ ALTERADO: A página principal agora vive em '/trades'
     {
