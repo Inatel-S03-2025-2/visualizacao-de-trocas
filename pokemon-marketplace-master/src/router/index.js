@@ -7,6 +7,8 @@ import CardTest from '../components/CardTest.vue';
 import TradesListPage from '../components/TradesListPage.vue';
 import MyTradesPage from "../components/MyTradesPage.vue";
 
+import LoginPage from "../components/LoginPage.vue";
+
 // Componentes "dummy" temporários
 const AddTradePage = { template: '<h1>Página Add Trade (Em construção)</h1>' };
 const MyCardsPage = { template: '<h1>Página My Cards (Em construção)</h1>' };

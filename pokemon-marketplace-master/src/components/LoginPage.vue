@@ -7,21 +7,21 @@
       <label class="field">
         <span>Usuário</span>
         <input
-          v-model="username"
-          @keyup.enter="handleLogin"
-          placeholder="seu usuário"
-          aria-label="Usuário"
+            v-model="username"
+            @keyup.enter="handleLogin"
+            placeholder="seu usuário"
+            aria-label="Usuário"
         />
       </label>
 
       <label class="field">
         <span>Senha</span>
         <input
-          type="password"
-          v-model="password"
-          @keyup.enter="handleLogin"
-          placeholder="sua senha"
-          aria-label="Senha"
+            type="password"
+            v-model="password"
+            @keyup.enter="handleLogin"
+            placeholder="sua senha"
+            aria-label="Senha"
         />
       </label>
 
